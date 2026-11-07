@@ -225,7 +225,11 @@ function renderHeader(){
   const dayNo = daysBetween(startDate, dateKey(sel)) + 1;
   $("dayNo").textContent = (dayNo >= 1 && dayNo <= CHALLENGE_DAYS) ? String(dayNo).padStart(2,"0") : (dayNo < 1 ? "–" : CHALLENGE_DAYS + "+");
   $("streak").textContent = currentStreak();
-  $("navDate").textContent = `${DAYNAMES[sel.getDay()]}, ${sel.getDate()} ${MONTHS[sel.getMonth()]}`;
+  const offset = daysBetween(dateKey(new Date()), dateKey(sel));
+  const relative = offset === 0 ? "Today" : offset === -1 ? "Yesterday" : offset === 1 ? "Tomorrow" : "";
+  $("navDay").textContent = relative || DAYNAMES[sel.getDay()];
+  $("navDate").textContent = relative ? `${DAYNAMES[sel.getDay()]}, ${sel.getDate()} ${MONTHS[sel.getMonth()]}`
+                                      : `${sel.getDate()} ${MONTHS[sel.getMonth()]} ${sel.getFullYear()}`;
   $("todayBtn").style.display = sameDay(sel, new Date()) ? "none" : "block";
 }
 
@@ -252,7 +256,7 @@ function renderWeek(){
     cell.type = "button";
     cell.className = "wc" + (sameDay(d, sel) ? " sel" : "") + (sameDay(d, today) ? " today" : "");
     cell.setAttribute("aria-label", `${DAYNAMES[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`);
-    cell.innerHTML = `<span class="wd">${WEEK_LABELS[i]}</span>
+    cell.innerHTML = `<span class="wd">${sameDay(d, today) ? "Today" : WEEK_LABELS[i]}</span>
       <span class="wn">${d.getDate()}</span><span class="wdot" style="background:${dotColor}"></span>`;
     cell.onclick = () => selectDate(d);
     week.appendChild(cell);

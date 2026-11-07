@@ -1,4 +1,4 @@
-const CACHE = "disiplin-v8";
+const CACHE = "disiplin-v9";
 const SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 // GitHub Pages lets the browser reuse files for 10 minutes, so a plain fetch here could store the previous version.
 const fresh = url => new Request(url, {cache: "reload"});

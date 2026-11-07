@@ -76,7 +76,9 @@ h1, h2{margin:0;}
 .nav{display:flex; align-items:center; justify-content:space-between; margin:6px 0 2px;}
 .nav button{background:none; border:none; color:var(--ink); width:40px; height:40px; font-size:24px; cursor:pointer; border-radius:var(--radius);}
 .nav button:active{background:var(--surface2);}
-.navdate{font-size:17px; font-weight:600; text-align:center; flex:1;}
+.navmid{flex:1; min-width:0; text-align:center;}
+.navday{font-size:22px; font-weight:700; line-height:1.2;}
+.navdate{font-size:13px; color:var(--muted); margin-top:1px;}
 .backtoday{display:block; margin:0 auto 6px; background:none; border:none; padding:4px 8px; cursor:pointer;
   color:var(--ink); font-size:13px; font-weight:500; text-decoration:underline; text-underline-offset:3px;}
 
