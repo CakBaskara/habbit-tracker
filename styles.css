@@ -6,7 +6,7 @@
   /* Dawn (dark) — default */
   --bg:#090D1A; --bg2:#111730; --surface:#161D36; --surface2:#1F2846; --line:#2A3454;
   --ink:#ECF1F9; --muted:#8593B2; --faint:#8591B0; --frost:#A8C0DC;
-  --accent:#A6B2C6; --ember:var(--accent); --dawn:var(--accent); --rose:#8894AC;
+  --accent:#A6B2C6; --rose:#8894AC;
   --accent-ink:#161B29; --argb:166,178,198; --dawn-dim:#565F72; --glass:rgba(255,255,255,0.05);
   --sun1:#CBD4E2; --sun2:#A6B2C6; --sun3:#7C89A2;
   --ok:#7FD6A8; --warn:#EAC157; --miss:#E88484;
@@ -18,7 +18,7 @@
 body[data-theme="light"]{
   --bg:#F6F4EF; --bg2:#FFFFFF; --surface:#FFFFFF; --surface2:#F1EDE4; --line:#E5E0D5;
   --ink:#2B2720; --muted:#70695E; --faint:#706859; --frost:#94795E;
-  --accent:#DD8A46; --rose:#E08466; --accent-ink:#FFFFFF; --argb:221,138,70; --dawn-dim:#CDBCA2; --glass:rgba(0,0,0,0.035);
+  --accent:#DD8A46; --ember:#9E571D; --rose:#E08466; --accent-ink:#FFFFFF; --argb:221,138,70; --dawn-dim:#CDBCA2; --glass:rgba(0,0,0,0.035);
   --sun1:#F2C24E; --sun2:#E8974E; --sun3:#E07A5F; --ok:#3EA377; --warn:#C68A28; --miss:#D2645F;
   --bg-grad:
     radial-gradient(120% 60% at 50% 115%, rgba(221,138,70,0.14), transparent 55%),
@@ -27,7 +27,7 @@ body[data-theme="light"]{
 body[data-theme="pink"]{
   --bg:#FFF0F6; --bg2:#FFFFFF; --surface:#FFFFFF; --surface2:#FDE7F1; --line:#F6D2E3;
   --ink:#3A2230; --muted:#845E70; --faint:#9B527A; --frost:#B0708F;
-  --accent:#E84B8A; --rose:#F58BB0; --accent-ink:#FFFFFF; --argb:232,75,138; --dawn-dim:#E6B4CC; --glass:rgba(0,0,0,0.03);
+  --accent:#E84B8A; --ember:#CA1A61; --rose:#F58BB0; --accent-ink:#FFFFFF; --argb:232,75,138; --dawn-dim:#E6B4CC; --glass:rgba(0,0,0,0.03);
   --sun1:#FFA8C8; --sun2:#F569A0; --sun3:#E84B8A; --ok:#3FB491; --warn:#D79A34; --miss:#E0637F;
   --bg-grad:
     radial-gradient(120% 60% at 50% 115%, rgba(232,75,138,0.14), transparent 55%),
@@ -36,7 +36,7 @@ body[data-theme="pink"]{
 body[data-theme="pastel"]{
   --bg:#F3F1FA; --bg2:#FFFFFF; --surface:#FFFFFF; --surface2:#EEEBF7; --line:#E6E1F1;
   --ink:#3B3550; --muted:#6D648A; --faint:#6D6298; --frost:#8E86AE;
-  --accent:#8E7CE0; --rose:#F2A6C0; --accent-ink:#FFFFFF; --argb:142,124,224; --dawn-dim:#D2CAEE; --glass:rgba(0,0,0,0.028);
+  --accent:#8E7CE0; --ember:#6A53D6; --rose:#F2A6C0; --accent-ink:#FFFFFF; --argb:142,124,224; --dawn-dim:#D2CAEE; --glass:rgba(0,0,0,0.028);
   --sun1:#A6E3D6; --sun2:#B7A6EA; --sun3:#F2A6C0; --ok:#5BC1A2; --warn:#E0B85A; --miss:#E58AA0;
   --bg-grad:
     radial-gradient(120% 55% at 12% -10%, rgba(142,124,224,0.16), transparent 55%),
@@ -64,7 +64,9 @@ body[data-theme="samudra"]{
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{margin:0; padding:0;}
 html{touch-action:manipulation;}
+/* Declared on body so it follows the theme's --accent; on :root it would stay the Dark value. */
 body{
+  --ember:var(--accent);
   font-family:var(--sans); color:var(--ink); min-height:100vh; -webkit-font-smoothing:antialiased;
   background:var(--bg-grad);
   background-attachment:fixed;
@@ -293,7 +295,7 @@ textarea:focus{outline:none; border-color:var(--dawn-dim);}
 .menurow:active{background:var(--surface2);}
 .menurow .mi{width:20px; text-align:center; color:var(--muted); font-size:15px;}
 .menurow.danger{color:var(--miss);} .menurow.danger .mi{color:var(--miss);}
-.menurow.arm{background:var(--miss); color:var(--accent-ink);} .menurow.arm .mi{color:var(--accent-ink);}
+.menurow.arm{background:var(--miss); color:#1A1414;} .menurow.arm .mi{color:#1A1414;}
 .submenu{display:none;} .submenu.show{display:block;}
 .mback{background:transparent; border:none; color:var(--muted); font-family:var(--mono); font-size:11px;
   letter-spacing:.08em; text-transform:uppercase; padding:6px 4px 12px; cursor:pointer;}
