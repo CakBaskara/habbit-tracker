@@ -110,7 +110,6 @@ body{
 .tally b{color:var(--ink);}
 .dot{width:8px; height:8px; border-radius:50%;}
 .d-ok{background:var(--ok); box-shadow:0 0 8px var(--ok);}
-.d-warn{background:var(--warn); box-shadow:0 0 8px var(--warn);}
 .d-miss{background:var(--miss); box-shadow:0 0 8px var(--miss);}
 
 /* day nav */
@@ -149,7 +148,6 @@ body{
   color:var(--ink); transition:transform .12s, background .18s, border-color .18s, box-shadow .18s;}
 .status:active{transform:scale(.88);}
 .status.s1{background:rgba(127,214,168,.18); border-color:var(--ok); color:var(--ok); box-shadow:0 0 14px -2px rgba(127,214,168,.5);}
-.status.s2{background:rgba(234,193,87,.18); border-color:var(--warn); color:var(--warn); box-shadow:0 0 14px -2px rgba(234,193,87,.5);}
 .status.s3{background:rgba(232,132,132,.18); border-color:var(--miss); color:var(--miss); box-shadow:0 0 14px -2px rgba(232,132,132,.5);}
 .hbody{flex:1; min-width:0; cursor:pointer;}
 .hname{font-weight:500; font-size:15.5px; line-height:1.25; word-break:break-word; letter-spacing:-.005em;}
@@ -309,3 +307,10 @@ textarea:focus{outline:none; border-color:var(--dawn-dim);}
   font-family:var(--grot); font-weight:600; font-size:12.5px; cursor:pointer;}
 /* iOS Safari zooms the page into any field under 16px when it gets focus. */
 @supports (-webkit-touch-callout:none){ input, textarea{font-size:16px;} }
+/* schedules */
+.habit.offday{opacity:.55;}
+.sched{display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:0 15px 13px;}
+.schip{border:1px solid var(--line); background:var(--surface2); color:var(--muted); border-radius:999px;
+  padding:6px 10px; font-family:var(--mono); font-size:11px; cursor:pointer;}
+.schip.on{background:var(--ember); border-color:var(--ember); color:var(--accent-ink);}
+.sched-hint{font-family:var(--mono); font-size:11px; color:var(--faint); margin-left:4px;}

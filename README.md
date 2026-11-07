@@ -5,10 +5,12 @@ progressive web app (PWA) — no build step, no dependencies, no backend.
 
 ## Features
 
-- **Tri-state marking** — ○ on time · △ obstacle · ✕ missed (a blocker is not the same as a miss)
+- **Yes / no marking** — ✓ done · ✕ not done; write partial results (for example "8 of 12") in the notes
+- **Schedules** — a habit runs every day, on chosen weekdays, or on the 13th–15th of the Hijri
+  month (Umm al-Qura calendar); off-schedule habits are dimmed and do not count that day
 - **Emotion log** — six emotions with emoji, plus "why" and "what could be better" notes per habit
 - **Extra tasks** — one-off daily reminders; unfinished ones roll over to today automatically
-- **Summary** — on-time rate, streaks, daily progress, habit consistency and emotion spread,
+- **Summary** — done rate, streaks, daily progress, habit consistency and emotion spread,
   filterable by period (7 days / 30 days / this month / all / custom range)
 - **6 themes** — Dark, Light, Pink, Pastel, Forest, Ocean
 - **Offline-first** — installable to the home screen, works with no connection
@@ -18,9 +20,11 @@ progressive web app (PWA) — no build step, no dependencies, no backend.
 
 Open `index.html` in a browser, or host it (see below) and add it to your home screen.
 
-- Tap the circle to cycle a habit's status
+- Tap the circle to cycle a habit: ✓ → ✕ → blank
 - Tap the ▾ button to open emotions and notes
 - Use the ‹ › arrows or the week strip to move between days
+- In **Edit habits**, tap the weekday chips (or 13–15 Hijri) under a habit to set its schedule;
+  with none selected the habit runs every day
 - Switch to **Summary** for charts
 
 ## Deploy

@@ -34,7 +34,11 @@ const THEMES = [
   {id:"hutan",   name:"Forest",  accent:"#8FD05A", bg:"#08140D"},
   {id:"samudra", name:"Ocean",   accent:"#5AC8DC", bg:"#05121A"},
 ];
-const STATUS_MARKS = ["", "○", "△", "✕"];
+const STATUS_DONE = 1, STATUS_MISSED = 3;   // 2 was "obstacle" in older data and now reads as missed
+const STATUS_MARKS = {[STATUS_DONE]:"✓", [STATUS_MISSED]:"✕"};
+const NEXT_STATUS = {0:STATUS_DONE, [STATUS_DONE]:STATUS_MISSED, [STATUS_MISSED]:0};
+const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];   // Mon..Sun as Date#getDay values
+const AYYAMUL_BID = [13, 14, 15];
 const DAYNAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const WEEK_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -139,19 +143,45 @@ function updateRecord(habitId, change){
   saveDay(dk);
 }
 
+// ---------- schedule ----------
+// Umm al-Qura can differ by a day from a local Hijri calendar; marking a habit makes it count that day anyway.
+const hijriFormat = (() => { try{ return new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {day:"numeric"}); }catch(e){ return null; } })();
+const hijriCache = {};
+function hijriDay(dk){
+  if(!(dk in hijriCache)){
+    const part = hijriFormat && hijriFormat.formatToParts(parseKey(dk)).find(p => p.type === "day");
+    hijriCache[dk] = part ? Number(part.value) : 0;
+  }
+  return hijriCache[dk];
+}
+const habitDays = h => Array.isArray(h.days) ? h.days : [];
+function isScheduled(h, dk){
+  const days = habitDays(h);
+  if(!days.length && !h.hijri) return true;
+  return days.includes(parseKey(dk).getDay()) || (!!h.hijri && AYYAMUL_BID.includes(hijriDay(dk)));
+}
+function scheduleLabel(h){
+  const days = habitDays(h);
+  const parts = days.length ? [WEEKDAY_ORDER.filter(n => days.includes(n)).map(n => WEEK_LABELS[WEEKDAY_ORDER.indexOf(n)]).join(", ")] : [];
+  if(h.hijri) parts.push("13–15 Hijri");
+  return parts.join(" + ");
+}
+
 // ---------- stats ----------
-function statusOf(rec, habitId){ return (rec[habitId] || {}).status || 0; }
-function tally(rec){
-  const t = {ok:0, warn:0, miss:0};
-  habits.forEach(h => {
+function statusOf(rec, habitId){ const s = (rec[habitId] || {}).status || 0; return s === 2 ? STATUS_MISSED : s; }
+const dueHabits = (dk, rec = getDay(dk)) => habits.filter(h => isScheduled(h, dk) || statusOf(rec, h.id) > 0);
+function tally(dk, rec = getDay(dk)){
+  const t = {ok:0, miss:0, due:0};
+  dueHabits(dk, rec).forEach(h => {
     const s = statusOf(rec, h.id);
-    if(s === 1) t.ok++; else if(s === 2) t.warn++; else if(s === 3) t.miss++;
+    t.due++;
+    if(s === STATUS_DONE) t.ok++; else if(s === STATUS_MISSED) t.miss++;
   });
   return t;
 }
-const tallyFor = dk => tally(getDay(dk));
+const tallyFor = dk => tally(dk);
 
-const dayComplete = dk => habits.length > 0 && tallyFor(dk).ok === habits.length;
+const dayComplete = dk => { const t = tallyFor(dk); return t.due > 0 && t.ok === t.due; };
 
 function currentStreak(){
   let d = new Date();
@@ -204,11 +234,10 @@ function renderHeader(){
 
 function renderRing(){
   const c = tallyFor(dateKey(sel));
-  const total = habits.length || 1;
-  $("pctNum").textContent = Math.round(c.ok/total*100) + "%";
-  $("ringFg").style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - c.ok/total));
+  const ratio = c.due ? c.ok/c.due : 0;
+  $("pctNum").textContent = Math.round(ratio*100) + "%";
+  $("ringFg").style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - ratio));
   $("cOk").textContent = c.ok;
-  $("cWarn").textContent = c.warn;
   $("cMiss").textContent = c.miss;
 }
 
@@ -216,12 +245,11 @@ function renderWeek(){
   const week = $("week"); week.innerHTML = "";
   const monday = addDays(sel, -((sel.getDay()+6) % 7));
   const today = new Date();
-  const total = habits.length || 1;
   for(let i = 0; i < 7; i++){
     const d = addDays(monday, i), c = tallyFor(dateKey(d));
     let dotColor = "var(--line)";
-    if(c.ok + c.warn + c.miss > 0){
-      const r = c.ok/total;
+    if(c.ok + c.miss > 0){
+      const r = c.ok/c.due;
       dotColor = r >= .8 ? "var(--ok)" : r >= .4 ? "var(--warn)" : (c.ok > 0 ? "var(--ember)" : "var(--miss)");
     }
     const cell = document.createElement("button");
@@ -241,13 +269,17 @@ function renderHabits(){
     list.innerHTML = `<div class="empty">No habits yet.<br>Tap “Edit habits” and add one to begin.</div>`;
     return;
   }
-  const day = getDay(dateKey(sel));
-  habits.forEach((h, idx) => {
+  const dk = dateKey(sel), day = getDay(dk);
+  const due = new Set(dueHabits(dk, day).map(h => h.id));
+  const indexed = habits.map((h, idx) => [h, idx]);
+  const ordered = editing ? indexed : [...indexed.filter(([h]) => due.has(h.id)), ...indexed.filter(([h]) => !due.has(h.id))];
+  ordered.forEach(([h, idx]) => {
     const rec = day[h.id] || {};
-    const st = rec.status || 0;
+    const st = statusOf(day, h.id);
     const card = document.createElement("div");
-    card.className = "habit" + (editing ? " editing" : "") + (expanded === h.id ? " expanded" : "") + (st === 1 ? " done" : "");
-    if(editing) card.appendChild(habitEditRow(h, idx));
+    card.className = "habit" + (editing ? " editing" : "") + (expanded === h.id ? " expanded" : "")
+      + (st === STATUS_DONE ? " done" : "") + (!editing && !due.has(h.id) ? " offday" : "");
+    if(editing) card.append(habitEditRow(h, idx), scheduleRow(h));
     else card.append(habitRow(h, rec, st), habitDetail(h, rec));
     list.appendChild(card);
   });
@@ -276,6 +308,32 @@ function habitEditRow(h, idx){
   return row;
 }
 
+function scheduleRow(h){
+  const row = document.createElement("div"); row.className = "sched";
+  const hint = document.createElement("span"); hint.className = "sched-hint";
+  const chips = [];
+  const refresh = () => {
+    chips.forEach(({b, on}) => { b.classList.toggle("on", on()); b.setAttribute("aria-pressed", String(on())); });
+    hint.textContent = scheduleLabel(h) ? "" : "Every day";
+  };
+  const addChip = (label, on, toggle) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "schip"; b.textContent = label;
+    b.onclick = () => { toggle(); refresh(); saveHabits(); };
+    chips.push({b, on}); row.appendChild(b);
+  };
+  WEEKDAY_ORDER.forEach((n, i) => addChip(WEEK_LABELS[i], () => habitDays(h).includes(n), () => {
+    const days = habitDays(h).includes(n) ? habitDays(h).filter(x => x !== n) : [...habitDays(h), n];
+    if(days.length && !(days.length === 7 && !h.hijri)) h.days = days.sort(); else delete h.days;
+  }));
+  addChip("13–15 Hijri", () => !!h.hijri, () => {
+    if(h.hijri) delete h.hijri; else h.hijri = true;
+    if(habitDays(h).length === 7 && !h.hijri) delete h.days;
+  });
+  row.appendChild(hint);
+  refresh();
+  return row;
+}
+
 function habitRow(h, rec, st){
   const row = document.createElement("div"); row.className = "hrow";
   const toggle = () => { expanded = expanded === h.id ? null : h.id; render(); };
@@ -286,15 +344,14 @@ function habitRow(h, rec, st){
   stBtn.setAttribute("aria-label", "Change status");
   stBtn.onclick = (e) => {
     e.stopPropagation();
-    updateRecord(h.id, r => { r.status = ((r.status||0) + 1) % 4; });
+    updateRecord(h.id, r => { r.status = NEXT_STATUS[r.status === 2 ? STATUS_MISSED : (r.status || 0)] || 0; });
     render();
   };
 
-  const emotion = rec.emotion ? emoLabel(rec.emotion) : "";
+  const meta = [h.time ? "◷ " + escapeHtml(h.time) : "", escapeHtml(scheduleLabel(h)), rec.emotion ? emoLabel(rec.emotion) : ""].filter(Boolean);
   const body = document.createElement("div"); body.className = "hbody";
   body.innerHTML = `<div class="hname">${escapeHtml(h.name)}</div>` +
-    (h.time ? `<div class="htime">◷ ${escapeHtml(h.time)}${emotion ? "&nbsp;·&nbsp;"+emotion : ""}</div>`
-            : (emotion ? `<div class="htime">${emotion}</div>` : ""));
+    (meta.length ? `<div class="htime">${meta.join("&nbsp;·&nbsp;")}</div>` : "");
   body.onclick = toggle;
 
   const caret = document.createElement("button"); caret.type = "button"; caret.className = "caret"; caret.textContent = "▾";
@@ -510,27 +567,29 @@ function renderSummary(){
     bind(); return;
   }
 
-  let ok = 0, warn = 0, miss = 0;
+  let ok = 0, miss = 0, possible = 0;
   const emoCount = {}; EMOS.forEach(([n]) => emoCount[n] = 0);
-  const perHabit = {}; habits.forEach(h => perHabit[h.id] = 0);
-  active.forEach(d => habits.forEach(h => {
-    const r = d.rec[h.id] || {}, s = r.status || 0;
-    if(s === 1){ ok++; perHabit[h.id]++; } else if(s === 2) warn++; else if(s === 3) miss++;
-    if(r.emotion && emoCount[r.emotion] != null) emoCount[r.emotion]++;
-  }));
-  const possible = active.length * habits.length;
+  const perHabit = {}, perHabitDue = {}; habits.forEach(h => { perHabit[h.id] = 0; perHabitDue[h.id] = 0; });
+  active.forEach(d => {
+    dueHabits(d.date, d.rec).forEach(h => {
+      const s = statusOf(d.rec, h.id);
+      possible++; perHabitDue[h.id]++;
+      if(s === STATUS_DONE){ ok++; perHabit[h.id]++; } else if(s === STATUS_MISSED) miss++;
+    });
+    habits.forEach(h => { const r = d.rec[h.id] || {}; if(r.emotion && emoCount[r.emotion] != null) emoCount[r.emotion]++; });
+  });
+  const unmarked = possible - ok - miss;
   const rate = possible ? Math.round(ok/possible*100) : 0;
-  const total = habits.length || 1;
   const tasks = taskTotals();
 
   const dayBars = active.map(d => {
-    const pct = Math.round(tally(d.rec).ok/total*100), dd = parseKey(d.date);
+    const t = tally(d.date, d.rec), pct = t.due ? Math.round(t.ok/t.due*100) : 0, dd = parseKey(d.date);
     return `<div class="vbar" title="${d.date}: ${pct}%"><div class="fill" style="height:${Math.max(pct,3)}%"></div><div class="vlab">${dd.getDate()}</div></div>`;
   }).join("");
 
   const habitBars = habits.map(h => {
-    const o = perHabit[h.id] || 0, pct = Math.round(o/active.length*100);
-    return hbar(escapeHtml(h.name || "—"), `${o}/${active.length} · ${pct}%`, `width:${pct}%`);
+    const o = perHabit[h.id], due = perHabitDue[h.id], pct = due ? Math.round(o/due*100) : 0;
+    return hbar(escapeHtml(h.name || "—"), `${o}/${due} · ${pct}%`, `width:${pct}%`);
   }).join("");
 
   const emoMax = Math.max(1, ...Object.values(emoCount));
@@ -542,21 +601,21 @@ function renderSummary(){
   el.innerHTML = filterCard + `
     <div class="sum-hero">
       <div class="big disp">${rate}%</div>
-      <div class="lbl">on time · ${range.label}</div>
-      <div class="sub">${active.length} days logged · ${ok} of ${possible} on time</div>
+      <div class="lbl">done · ${range.label}</div>
+      <div class="sub">${active.length} days logged · ${ok} of ${possible} done</div>
     </div>
     <div class="statgrid">
-      <div class="stat"><div class="n disp" style="color:var(--ok)">${ok}</div><div class="k">○ on time</div></div>
-      <div class="stat"><div class="n disp" style="color:var(--warn)">${warn}</div><div class="k">△ obstacle</div></div>
-      <div class="stat"><div class="n disp" style="color:var(--miss)">${miss}</div><div class="k">✕ missed</div></div>
+      <div class="stat"><div class="n disp" style="color:var(--ok)">${ok}</div><div class="k">✓ done</div></div>
+      <div class="stat"><div class="n disp" style="color:var(--miss)">${miss}</div><div class="k">✕ not done</div></div>
+      <div class="stat"><div class="n disp">${unmarked}</div><div class="k">not marked</div></div>
     </div>
     <div class="statgrid">
       <div class="stat"><div class="n disp">${currentStreak()}</div><div class="k">current streak</div></div>
       <div class="stat"><div class="n disp">${bestStreak()}</div><div class="k">best streak</div></div>
       <div class="stat"><div class="n disp">${tasks.done}/${tasks.total}</div><div class="k">tasks done</div></div>
     </div>
-    <div class="card"><h3>Daily progress</h3><div class="hint">${active.length} days logged · % on time</div><div class="vbars">${dayBars}</div></div>
-    <div class="card"><h3>Habit consistency</h3><div class="hint">how often each habit is ○</div>${habitBars}</div>
+    <div class="card"><h3>Daily progress</h3><div class="hint">${active.length} days logged · % done</div><div class="vbars">${dayBars}</div></div>
+    <div class="card"><h3>Habit consistency</h3><div class="hint">done on the days it was due</div>${habitBars}</div>
     <div class="card"><h3>Emotion spread</h3><div class="hint">which feelings show up most</div>${emoBars}</div>
   `;
   bind();
