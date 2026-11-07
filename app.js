@@ -593,11 +593,12 @@ function renderSummary(){
     return hbar(`${emoji} ${n}`, c, `width:${Math.max(pct, c > 0 ? 6 : 0)}%; background:var(${v})`);
   }).join("");
 
+  const daysLogged = `${active.length} ${active.length === 1 ? "day" : "days"} logged`;
   el.innerHTML = filterCard + `
     <div class="sum-hero">
       <div class="big disp">${rate}%</div>
       <div class="lbl">done · ${range.label}</div>
-      <div class="sub">${active.length} days logged · ${ok} of ${possible} done</div>
+      <div class="sub">${daysLogged} · ${ok} of ${possible} done</div>
     </div>
     <div class="statgrid">
       <div class="stat"><div class="n disp" style="color:var(--ok)">${ok}</div><div class="k">✓ done</div></div>
@@ -609,7 +610,7 @@ function renderSummary(){
       <div class="stat"><div class="n disp">${bestStreak()}</div><div class="k">best streak</div></div>
       <div class="stat"><div class="n disp">${tasks.done}/${tasks.total}</div><div class="k">tasks done</div></div>
     </div>
-    <div class="card"><h3>Daily progress</h3><div class="hint">${active.length} days logged · % done</div><div class="vbars">${dayBars}</div></div>
+    <div class="card"><h3>Daily progress</h3><div class="hint">${daysLogged} · % done</div><div class="vbars">${dayBars}</div></div>
     <div class="card"><h3>Habit consistency</h3><div class="hint">done on the days it was due</div>${habitBars}</div>
     <div class="card"><h3>Emotion spread</h3><div class="hint">which feelings show up most</div>${emoBars}</div>
   `;
