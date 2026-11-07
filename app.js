@@ -66,8 +66,10 @@ const store = {
   }
 };
 
-const storedDayKeys = () => store.keys(DAY_PREFIX).map(k => k.slice(DAY_PREFIX.length)).sort();
-const storedTaskKeys = () => store.keys(TASKS_PREFIX).map(k => k.slice(TASKS_PREFIX.length));
+const isPlainObject = v => v !== null && typeof v === "object" && !Array.isArray(v);
+const isDateKey = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const storedDayKeys = () => store.keys(DAY_PREFIX).map(k => k.slice(DAY_PREFIX.length)).filter(isDateKey).sort();
+const storedTaskKeys = () => store.keys(TASKS_PREFIX).map(k => k.slice(TASKS_PREFIX.length)).filter(isDateKey);
 
 // ---------- dates ----------
 function dateKey(d){
@@ -77,13 +79,18 @@ function dateKey(d){
 function parseKey(k){ const [y,m,d] = k.split("-").map(Number); return new Date(y, m-1, d); }
 function sameDay(a, b){ return dateKey(a) === dateKey(b); }
 function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
-function daysBetween(fromKey, toKey){ return Math.floor((parseKey(toKey) - parseKey(fromKey)) / DAY_MS); }
+// Count through UTC: a local day is 23 or 25 hours long at a daylight-saving change.
+function daysBetween(fromKey, toKey){
+  const utc = k => { const [y,m,d] = k.split("-").map(Number); return Date.UTC(y, m-1, d); };
+  return (utc(toKey) - utc(fromKey)) / DAY_MS;
+}
 function fmtShort(d){ return `${d.getDate()} ${MONTHS[d.getMonth()]}`; }
 
 // ---------- state ----------
 let habits = [];
 let startDate = null;       // dateKey
 let sel = new Date();       // selected date
+let todayKey = dateKey(new Date());
 let editing = false;
 let expanded = null;        // habit id currently expanded
 let view = "daily";         // "daily" | "summary"
@@ -91,13 +98,15 @@ let sumFilter = {mode:"30d", from:"", to:""};
 let dayCache = {};          // dateKey -> { habitId: {status:0..3, emotion, why, better} }
 let taskCache = {};         // dateKey -> [ {id, text, done, rolled} ]  (one-off reminders)
 
+const defaultHabits = () => DEFAULT_HABITS.map(h => ({...h}));
+
 function getDay(dk){
-  if(!dayCache[dk]) dayCache[dk] = store.get(DAY_PREFIX+dk, {}) || {};
+  if(!dayCache[dk]){ const v = store.get(DAY_PREFIX+dk, {}); dayCache[dk] = isPlainObject(v) ? v : {}; }
   return dayCache[dk];
 }
 function saveDay(dk){ store.set(DAY_PREFIX+dk, getDay(dk)); }
 function getTasks(dk){
-  if(!taskCache[dk]) taskCache[dk] = store.get(TASKS_PREFIX+dk, []);
+  if(!taskCache[dk]){ const v = store.get(TASKS_PREFIX+dk, []); taskCache[dk] = Array.isArray(v) ? v.filter(isPlainObject) : []; }
   return taskCache[dk];
 }
 function saveTasks(dk){ store.set(TASKS_PREFIX+dk, getTasks(dk)); }
@@ -105,7 +114,8 @@ function saveHabits(){ store.set(KEY_HABITS, habits); }
 
 function updateRecord(habitId, change){
   const dk = dateKey(sel), day = getDay(dk);
-  change(day[habitId] || (day[habitId] = {}));
+  if(!isPlainObject(day[habitId])) day[habitId] = {};
+  change(day[habitId]);
   saveDay(dk);
 }
 
@@ -133,9 +143,8 @@ function currentStreak(){
 function bestStreak(){
   let best = 0, run = 0, prev = null;
   storedDayKeys().filter(dk => tallyFor(dk).ok > 0).forEach(dk => {
-    const cur = parseKey(dk).getTime();
-    run = (prev != null && cur - prev === DAY_MS) ? run + 1 : 1;
-    best = Math.max(best, run); prev = cur;
+    run = (prev !== null && daysBetween(prev, dk) === 1) ? run + 1 : 1;
+    best = Math.max(best, run); prev = dk;
   });
   return best;
 }
@@ -149,7 +158,7 @@ function taskTotals(){
 const $ = id => document.getElementById(id);
 
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
-function emoLabel(name){ const e = EMOS.find(x => x[0] === name); return e ? `${e[2]} ${name}` : name; }
+function emoLabel(name){ const e = EMOS.find(x => x[0] === name); return e ? `${e[2]} ${name}` : escapeHtml(name); }
 
 function render(){
   renderHeader();
@@ -159,6 +168,7 @@ function render(){
   renderTasks();
   document.querySelector(".barwrap").style.display = (view === "daily" && editing) ? "block" : "none";
   $("addBtn").style.display = editing ? "block" : "none";
+  if(view === "summary") renderSummary();
 }
 
 function renderHeader(){
@@ -337,12 +347,22 @@ function rolloverTasks(){
   return moved;
 }
 
+function checkNewDay(){
+  const now = dateKey(new Date());
+  if(now === todayKey) return;
+  const wasOnToday = dateKey(sel) === todayKey;
+  todayKey = now;
+  rolloverTasks();
+  if(wasOnToday){ sel = new Date(); expanded = null; }
+  render();
+}
+
 // ---------- data: export / reset ----------
 function exportData(){
   const dump = {app:"disiplin-40", version:1, exported:new Date().toISOString(),
     habits:store.get(KEY_HABITS, []), start:store.get(KEY_START, null), days:{}, tasks:{}};
-  store.keys(DAY_PREFIX).forEach(k => { dump.days[k.slice(DAY_PREFIX.length)] = store.get(k); });
-  store.keys(TASKS_PREFIX).forEach(k => { dump.tasks[k.slice(TASKS_PREFIX.length)] = store.get(k); });
+  storedDayKeys().forEach(dk => { dump.days[dk] = store.get(DAY_PREFIX+dk); });
+  storedTaskKeys().forEach(dk => { dump.tasks[dk] = store.get(TASKS_PREFIX+dk); });
   const blob = new Blob([JSON.stringify(dump, null, 2)], {type:"application/json"});
   const url = URL.createObjectURL(blob), a = document.createElement("a");
   a.href = url; a.download = `disiplin-backup-${dateKey(new Date())}.json`;
@@ -351,9 +371,11 @@ function exportData(){
 }
 
 function resetAllData(){
-  [...store.keys(DAY_PREFIX), ...store.keys(TASKS_PREFIX), KEY_HABITS, KEY_START].forEach(k => store.remove(k));
+  storedDayKeys().forEach(dk => store.remove(DAY_PREFIX+dk));
+  storedTaskKeys().forEach(dk => store.remove(TASKS_PREFIX+dk));
+  [KEY_HABITS, KEY_START].forEach(k => store.remove(k));
   dayCache = {}; taskCache = {}; expanded = null; editing = false; sumFilter = {mode:"30d", from:"", to:""};
-  habits = DEFAULT_HABITS.slice(); saveHabits();
+  habits = defaultHabits(); saveHabits();
   startDate = dateKey(new Date()); store.set(KEY_START, startDate);
   sel = new Date(); render();
 }
@@ -376,7 +398,7 @@ function summaryRange(){
 }
 
 function hbar(label, count, fillStyle){
-  return `<div class="hbar"><div class="top"><span class="nm">${label}</span><span class="ct">${count}</span></div><div class="track"><div class="bar" style="${fillStyle}"></div></div></div>`;
+  return `<div class="hbar"><div class="top"><span class="nm">${label}</span><span class="ct">${count}</span></div><div class="track"><div class="meter" style="${fillStyle}"></div></div></div>`;
 }
 
 function renderSummary(){
@@ -503,7 +525,7 @@ function bindControls(){
   $("taskInput").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); addTaskFromInput(); } });
   $("doneBtn").onclick = () => {
     editing = false;
-    habits = habits.filter(h => h.name.trim() !== "");
+    habits = habits.filter(h => String(h.name || "").trim() !== "");
     saveHabits(); render();
   };
   $("addBtn").onclick = () => {
@@ -554,16 +576,19 @@ function bindMenu(){
 
 // ---------- init ----------
 function init(){
-  habits = store.get(KEY_HABITS, null);
-  if(!habits){ habits = DEFAULT_HABITS.slice(); saveHabits(); }
+  const savedHabits = store.get(KEY_HABITS, null);
+  if(Array.isArray(savedHabits)) habits = savedHabits.filter(isPlainObject);
+  else { habits = defaultHabits(); saveHabits(); }
   startDate = store.get(KEY_START, null);
-  if(!startDate){ startDate = dateKey(new Date()); store.set(KEY_START, startDate); }
+  if(!isDateKey(startDate)){ startDate = dateKey(new Date()); store.set(KEY_START, startDate); }
   const theme = store.get(KEY_THEME, "dark");
   document.body.setAttribute("data-theme", theme);
   buildThemeGrid(theme);
   bindControls();
   rolloverTasks();
   render();
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) checkNewDay(); });
+  setInterval(checkNewDay, 60000);
 }
 
 if("serviceWorker" in navigator){ window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {})); }

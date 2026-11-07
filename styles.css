@@ -116,8 +116,8 @@ body{
   width:44px; height:44px; border-radius:13px; font-size:20px; cursor:pointer; display:grid; place-items:center;
   backdrop-filter:blur(6px); transition:background .18s, border-color .18s;}
 .nav button:active{background:var(--surface2);}
-.nav .today{font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase;
-  color:var(--ember); background:none; border:none; padding:8px 10px; flex:0;}
+.backtoday{display:block; margin:-6px auto 14px; cursor:pointer; font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ember); background:none; border:none; padding:8px 10px;}
 .nav .navdate{font-family:var(--serif); font-style:italic; font-weight:500; font-size:16px; text-align:center; flex:1; color:var(--frost);}
 
 /* week strip — blockless */
@@ -265,7 +265,7 @@ textarea:focus{outline:none; border-color:var(--dawn-dim);}
 .hbar .nm{font-size:13.5px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .hbar .ct{font-family:var(--mono); font-size:11.5px; color:var(--muted); flex:0 0 auto;}
 .hbar .track{height:9px; background:var(--bg2); border-radius:6px; overflow:hidden;}
-.hbar .bar{height:100%; border-radius:6px; background:linear-gradient(90deg, var(--ember), var(--rose)); transition:width .5s ease;}
+.hbar .meter{height:100%; border-radius:6px; background:linear-gradient(90deg, var(--ember), var(--rose)); transition:width .5s ease;}
 .sum-empty{text-align:center; color:var(--muted); padding:52px 20px; font-size:14px; line-height:1.7;}
 
 @media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important;} }
