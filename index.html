@@ -6,17 +6,16 @@
 <title>Discipline · 40 Days</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0C1114">
+<meta name="theme-color" content="#FFFFFF">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Discipline">
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
-<div class="grain"></div>
 <button id="menuBtn" class="menubtn" aria-label="Menu">☰</button>
 <div id="menuPanel" class="menupanel">
   <div id="menuMain">
@@ -42,12 +41,27 @@
     <div class="msub-inner"><div class="themegrid" id="themeGrid"></div></div>
   </div>
 </div>
-<div class="wrap fadein">
+<div class="wrap">
   <div class="savewarn" id="saveWarn" role="alert" hidden>
     <span>Changes aren’t being saved on this device.</span>
     <button id="saveWarnExport">Export backup</button>
   </div>
-  <div class="eyebrow">40 Days · Toward Discipline</div>
+
+  <header class="top">
+    <h1 class="top-title">Discipline</h1>
+    <div class="top-sub">40 days toward discipline</div>
+  </header>
+
+  <div class="banner">
+    <div class="banner-row">
+      <div>
+        <div class="banner-title">Day <span id="dayNo">–</span> of 40</div>
+        <div class="banner-sub"><span id="cOk">0</span> of <span id="cDue">0</span> done · <span id="cMiss">0</span> not done</div>
+      </div>
+      <div class="banner-streak"><b id="streak">0</b><span>day streak</span></div>
+    </div>
+    <div class="banner-bar"><div class="banner-fill" id="progressFill"></div></div>
+  </div>
 
   <div class="seg">
     <button class="seg-btn active" id="segDaily">Daily</button>
@@ -55,54 +69,16 @@
   </div>
 
   <div id="viewDaily">
-  <div class="datebig disp" id="dateBig">—</div>
-  <div class="weekday" id="weekday">—</div>
-  <div class="metarow">
-    <span class="chip mono">Day <b id="dayNo">–</b> / 40</span>
-    <span class="chip mono"><span class="flame">▲</span> Streak <b id="streak">0</b></span>
-  </div>
-
-  <div class="ringwrap">
-    <div class="ring">
-      <svg width="210" height="210" viewBox="0 0 210 210">
-        <defs>
-          <linearGradient id="sun" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="var(--sun1)"/>
-            <stop offset="55%" stop-color="var(--sun2)"/>
-            <stop offset="100%" stop-color="var(--sun3)"/>
-          </linearGradient>
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="4" result="b"/>
-            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        <circle cx="105" cy="105" r="95" fill="none" stroke="var(--line)" stroke-width="1"
-          stroke-dasharray="1.5 7.9" opacity="0.7"/>
-        <circle cx="105" cy="105" r="80" fill="none" stroke="var(--line)" stroke-width="12"/>
-        <circle id="ringFg" cx="105" cy="105" r="80" fill="none" stroke="url(#sun)" stroke-width="12"
-          stroke-linecap="round" stroke-dasharray="502.4" stroke-dashoffset="502.4"
-          filter="url(#glow)" style="transition:stroke-dashoffset .6s cubic-bezier(.2,.7,.2,1)"/>
-      </svg>
-      <div class="pct">
-        <div class="num serif" id="pctNum">0%</div>
-        <div class="lbl">done</div>
-      </div>
-    </div>
-    <div class="tally">
-      <span><i class="dot d-ok"></i>✓ <b id="cOk">0</b></span>
-      <span><i class="dot d-miss"></i>✕ <b id="cMiss">0</b></span>
-    </div>
-  </div>
-
   <div class="nav">
     <button id="prev" aria-label="Previous day">‹</button>
-    <div class="navdate disp" id="navDate">—</div>
+    <div class="navdate" id="navDate">—</div>
     <button id="next" aria-label="Next day">›</button>
   </div>
-  <button class="backtoday" id="todayBtn">↩ Back to today</button>
+  <button class="backtoday" id="todayBtn">Back to today</button>
 
   <div class="week" id="week"></div>
 
+  <h2 class="sec-title">Habits</h2>
   <div id="list"></div>
 
   <button class="add" id="addBtn">＋ Add habit</button>
@@ -110,15 +86,15 @@
   <div class="tsec">
     <div class="tsec-head">
       <div>
-        <div class="tsec-title disp">Extra tasks</div>
-        <div class="tsec-sub">reminders just for today</div>
+        <h2 class="sec-title">Extra tasks</h2>
+        <div class="tsec-sub">Reminders just for today</div>
       </div>
-      <div class="tsec-count mono" id="taskCount">0 / 0 done</div>
+      <div class="tsec-count" id="taskCount">0 / 0 done</div>
     </div>
     <div id="taskList"></div>
   </div>
 
-  <div class="legend">✓ done&nbsp;&nbsp;·&nbsp;&nbsp;✕ not done&nbsp;&nbsp;·&nbsp;&nbsp;tap again to clear</div>
+  <div class="legend">✓ done · ✕ not done · tap again to clear</div>
   <div class="foot">Reminders still come from your phone alarm or email.<br>This app is for logging and seeing your progress.</div>
 
   </div><!-- /viewDaily -->

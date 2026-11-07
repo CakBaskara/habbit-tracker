@@ -3,7 +3,6 @@
 // ---------- constants ----------
 const CHALLENGE_DAYS = 40;
 const DAY_MS = 86400000;
-const RING_CIRCUMFERENCE = 2 * Math.PI * 80;
 
 const NS = "disiplin40:";
 const KEY_HABITS = NS + "habits";
@@ -27,12 +26,12 @@ const DEFAULT_HABITS = [
   {id:"h8", name:"Sleep on time", time:"22:30"},
 ];
 const THEMES = [
-  {id:"dark",    name:"Dark",    accent:"#A6B2C6", bg:"#0A0F20"},
-  {id:"light",   name:"Light",   accent:"#DD8A46", bg:"#F6F4EF"},
-  {id:"pink",    name:"Pink",    accent:"#E84B8A", bg:"#FFF0F6"},
-  {id:"pastel",  name:"Pastel",  accent:"#8E7CE0", bg:"#F3F1FA"},
-  {id:"hutan",   name:"Forest",  accent:"#8FD05A", bg:"#08140D"},
-  {id:"samudra", name:"Ocean",   accent:"#5AC8DC", bg:"#05121A"},
+  {id:"light",   name:"Light",   accent:"#1E1F22", bg:"#FFFFFF"},
+  {id:"dark",    name:"Dark",    accent:"#F1F2F3", bg:"#121314"},
+  {id:"pink",    name:"Pink",    accent:"#B0175A", bg:"#FFF7FA"},
+  {id:"pastel",  name:"Pastel",  accent:"#5B4BC4", bg:"#F7F6FC"},
+  {id:"hutan",   name:"Forest",  accent:"#8FD05A", bg:"#0F1813"},
+  {id:"samudra", name:"Ocean",   accent:"#5AC8DC", bg:"#0D1720"},
 ];
 const STATUS_DONE = 1, STATUS_MISSED = 3;   // 2 was "obstacle" in older data and now reads as missed
 const STATUS_MARKS = {[STATUS_DONE]:"✓", [STATUS_MISSED]:"✕"};
@@ -213,7 +212,7 @@ function emoLabel(name){ const e = EMOS.find(x => x[0] === name); return e ? `${
 
 function render(){
   renderHeader();
-  renderRing();
+  renderProgress();
   renderWeek();
   renderHabits();
   renderTasks();
@@ -224,20 +223,17 @@ function render(){
 
 function renderHeader(){
   const dayNo = daysBetween(startDate, dateKey(sel)) + 1;
-  $("dateBig").textContent = `${sel.getDate()} ${MONTHS[sel.getMonth()]}`;
-  $("weekday").textContent = DAYNAMES[sel.getDay()] + " " + sel.getFullYear();
   $("dayNo").textContent = (dayNo >= 1 && dayNo <= CHALLENGE_DAYS) ? String(dayNo).padStart(2,"0") : (dayNo < 1 ? "–" : CHALLENGE_DAYS + "+");
   $("streak").textContent = currentStreak();
   $("navDate").textContent = `${DAYNAMES[sel.getDay()]}, ${sel.getDate()} ${MONTHS[sel.getMonth()]}`;
   $("todayBtn").style.display = sameDay(sel, new Date()) ? "none" : "block";
 }
 
-function renderRing(){
+function renderProgress(){
   const c = tallyFor(dateKey(sel));
-  const ratio = c.due ? c.ok/c.due : 0;
-  $("pctNum").textContent = Math.round(ratio*100) + "%";
-  $("ringFg").style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - ratio));
+  $("progressFill").style.width = (c.due ? c.ok/c.due*100 : 0) + "%";
   $("cOk").textContent = c.ok;
+  $("cDue").textContent = c.due;
   $("cMiss").textContent = c.miss;
 }
 
@@ -250,7 +246,7 @@ function renderWeek(){
     let dotColor = "var(--line)";
     if(c.ok + c.miss > 0){
       const r = c.ok/c.due;
-      dotColor = r >= .8 ? "var(--ok)" : r >= .4 ? "var(--warn)" : (c.ok > 0 ? "var(--ember)" : "var(--miss)");
+      dotColor = r >= .8 ? "var(--ok)" : r >= .4 ? "var(--warn)" : (c.ok > 0 ? "var(--accent)" : "var(--miss)");
     }
     const cell = document.createElement("button");
     cell.type = "button";
@@ -278,7 +274,7 @@ function renderHabits(){
     const st = statusOf(day, h.id);
     const card = document.createElement("div");
     card.className = "habit" + (editing ? " editing" : "") + (expanded === h.id ? " expanded" : "")
-      + (st === STATUS_DONE ? " done" : "") + (!editing && !due.has(h.id) ? " offday" : "");
+      + (st === STATUS_DONE ? " done" : st === STATUS_MISSED ? " missed" : "") + (!editing && !due.has(h.id) ? " offday" : "");
     if(editing) card.append(habitEditRow(h, idx), scheduleRow(h));
     else card.append(habitRow(h, rec, st), habitDetail(h, rec));
     list.appendChild(card);
@@ -369,10 +365,9 @@ function habitDetail(h, rec){
   inner.innerHTML = `<div class="dlabel">How it felt</div>`;
 
   const emos = document.createElement("div"); emos.className = "emos";
-  EMOS.forEach(([name, cssVar, emoji]) => {
+  EMOS.forEach(([name, , emoji]) => {
     const b = document.createElement("button");
     b.className = "emo" + (rec.emotion === name ? " on" : "");
-    b.style.setProperty("--emoc", `var(${cssVar})`);
     b.innerHTML = `<span class="eemo">${emoji}</span>${name}`;
     b.onclick = () => { updateRecord(h.id, r => { r.emotion = r.emotion === name ? null : name; }); render(); };
     emos.appendChild(b);
@@ -646,7 +641,12 @@ function buildThemeGrid(current){
     grid.appendChild(b);
   });
 }
-function setTheme(id){ document.body.setAttribute("data-theme", id); store.set(KEY_THEME, id); buildThemeGrid(id); }
+function applyTheme(id){
+  document.body.setAttribute("data-theme", id);
+  const theme = THEMES.find(t => t.id === id) || THEMES[0];
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", theme.bg);
+}
+function setTheme(id){ applyTheme(id); store.set(KEY_THEME, id); buildThemeGrid(id); }
 
 // ---------- controls ----------
 function bindControls(){
@@ -720,8 +720,8 @@ function init(){
   else { habits = defaultHabits(); saveHabits(); }
   startDate = store.get(KEY_START, null);
   if(!isDateKey(startDate)){ startDate = dateKey(new Date()); store.set(KEY_START, startDate); }
-  const theme = store.get(KEY_THEME, "dark");
-  document.body.setAttribute("data-theme", theme);
+  const theme = store.get(KEY_THEME, "light");
+  applyTheme(theme);
   buildThemeGrid(theme);
   bindControls();
   rolloverTasks();
