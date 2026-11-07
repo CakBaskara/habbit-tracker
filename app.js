@@ -5,11 +5,12 @@ const CHALLENGE_DAYS = 40;
 const DAY_MS = 86400000;
 const RING_CIRCUMFERENCE = 2 * Math.PI * 80;
 
-const KEY_HABITS = "habits:list";
-const KEY_START = "meta:start";
-const KEY_THEME = "meta:theme";
-const DAY_PREFIX = "day:";
-const TASKS_PREFIX = "tasks:";
+const NS = "disiplin40:";
+const KEY_HABITS = NS + "habits";
+const KEY_START = NS + "start";
+const KEY_THEME = NS + "theme";
+const DAY_PREFIX = NS + "day:";
+const TASKS_PREFIX = NS + "tasks:";
 
 const EMOS = [
   ["Happy","--happy","😊"],["Sad","--sad","😢"],["Fear","--fear","😨"],
@@ -47,7 +48,14 @@ const store = {
   },
   set(key, value){
     memory[key] = value;
-    try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
+    let ok = true;
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){ ok = false; }
+    noteSave(ok);
+    return ok;
+  },
+  probe(){
+    try{ localStorage.setItem(NS+"probe", "1"); localStorage.removeItem(NS+"probe"); return true; }
+    catch(e){ return false; }
   },
   remove(key){
     delete memory[key];
@@ -70,6 +78,17 @@ const isPlainObject = v => v !== null && typeof v === "object" && !Array.isArray
 const isDateKey = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 const storedDayKeys = () => store.keys(DAY_PREFIX).map(k => k.slice(DAY_PREFIX.length)).filter(isDateKey).sort();
 const storedTaskKeys = () => store.keys(TASKS_PREFIX).map(k => k.slice(TASKS_PREFIX.length)).filter(isDateKey);
+
+// Versions before the NS prefix stored data under bare names such as "day:2026-11-07".
+function migrateLegacyKeys(){
+  if(store.get(KEY_HABITS, null) !== null || !Array.isArray(store.get("habits:list", null))) return;
+  const moves = [["habits:list", KEY_HABITS], ["meta:start", KEY_START], ["meta:theme", KEY_THEME]];
+  [["day:", DAY_PREFIX], ["tasks:", TASKS_PREFIX]].forEach(([oldPrefix, newPrefix]) =>
+    store.keys(oldPrefix).forEach(k => { const dk = k.slice(oldPrefix.length); if(isDateKey(dk)) moves.push([k, newPrefix+dk]); }));
+  let copied = true;
+  moves.forEach(([from, to]) => { const v = store.get(from, undefined); if(v !== undefined && !store.set(to, v)) copied = false; });
+  if(copied) moves.forEach(([from]) => store.remove(from));
+}
 
 // ---------- dates ----------
 function dateKey(d){
@@ -97,6 +116,7 @@ let view = "daily";         // "daily" | "summary"
 let sumFilter = {mode:"30d", from:"", to:""};
 let dayCache = {};          // dateKey -> { habitId: {status:0..3, emotion, why, better} }
 let taskCache = {};         // dateKey -> [ {id, text, done, rolled} ]  (one-off reminders)
+let saveFailed = false;
 
 const defaultHabits = () => DEFAULT_HABITS.map(h => ({...h}));
 
@@ -131,18 +151,19 @@ function tally(rec){
 }
 const tallyFor = dk => tally(getDay(dk));
 
+const dayComplete = dk => habits.length > 0 && tallyFor(dk).ok === habits.length;
+
 function currentStreak(){
   let d = new Date();
-  // if today has nothing yet, start counting from yesterday
-  const t = tallyFor(dateKey(d));
-  if(t.ok + t.warn + t.miss === 0) d = addDays(d, -1);
+  // today is still in progress, so an unfinished today does not break the streak
+  if(!dayComplete(dateKey(d))) d = addDays(d, -1);
   let streak = 0;
-  for(let i = 0; i < 400 && tallyFor(dateKey(d)).ok > 0; i++){ streak++; d = addDays(d, -1); }
+  for(let i = 0; i < 400 && dayComplete(dateKey(d)); i++){ streak++; d = addDays(d, -1); }
   return streak;
 }
 function bestStreak(){
   let best = 0, run = 0, prev = null;
-  storedDayKeys().filter(dk => tallyFor(dk).ok > 0).forEach(dk => {
+  storedDayKeys().filter(dayComplete).forEach(dk => {
     run = (prev !== null && daysBetween(prev, dk) === 1) ? run + 1 : 1;
     best = Math.max(best, run); prev = dk;
   });
@@ -203,10 +224,12 @@ function renderWeek(){
       const r = c.ok/total;
       dotColor = r >= .8 ? "var(--ok)" : r >= .4 ? "var(--warn)" : (c.ok > 0 ? "var(--ember)" : "var(--miss)");
     }
-    const cell = document.createElement("div");
+    const cell = document.createElement("button");
+    cell.type = "button";
     cell.className = "wc" + (sameDay(d, sel) ? " sel" : "") + (sameDay(d, today) ? " today" : "");
-    cell.innerHTML = `<div class="wd">${WEEK_LABELS[i]}</div>
-      <div class="wn">${d.getDate()}</div><div class="wdot" style="background:${dotColor}"></div>`;
+    cell.setAttribute("aria-label", `${DAYNAMES[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`);
+    cell.innerHTML = `<span class="wd">${WEEK_LABELS[i]}</span>
+      <span class="wn">${d.getDate()}</span><span class="wdot" style="background:${dotColor}"></span>`;
     cell.onclick = () => selectDate(d);
     week.appendChild(cell);
   }
@@ -239,7 +262,17 @@ function habitEditRow(h, idx){
   const [nameInput, timeInput] = row.querySelectorAll("input");
   nameInput.oninput = () => { h.name = nameInput.value; saveHabits(); };
   timeInput.oninput = () => { h.time = timeInput.value; saveHabits(); };
-  row.querySelector(".del").onclick = () => { habits.splice(idx, 1); saveHabits(); render(); };
+  const del = row.querySelector(".del");
+  let timer = null;
+  const disarm = () => { del.classList.remove("arm"); del.textContent = "✕"; del.setAttribute("aria-label", "Delete"); };
+  del.onclick = () => {
+    if(!del.classList.contains("arm")){
+      del.classList.add("arm"); del.textContent = "Delete?"; del.setAttribute("aria-label", "Tap again to delete");
+      timer = setTimeout(disarm, 3500);
+      return;
+    }
+    clearTimeout(timer); habits.splice(idx, 1); saveHabits(); render();
+  };
   return row;
 }
 
@@ -264,7 +297,9 @@ function habitRow(h, rec, st){
             : (emotion ? `<div class="htime">${emotion}</div>` : ""));
   body.onclick = toggle;
 
-  const caret = document.createElement("div"); caret.className = "caret"; caret.textContent = "▾";
+  const caret = document.createElement("button"); caret.type = "button"; caret.className = "caret"; caret.textContent = "▾";
+  caret.setAttribute("aria-label", "Feelings and notes");
+  caret.setAttribute("aria-expanded", String(expanded === h.id));
   caret.onclick = toggle;
 
   row.append(stBtn, body, caret);
@@ -291,6 +326,7 @@ function habitDetail(h, rec){
     noteField(h, rec, "why", "Why did it feel that way?"),
     noteField(h, rec, "better", "What could be better…"));
   det.appendChild(inner);
+  det.inert = expanded !== h.id;
   return det;
 }
 
@@ -357,7 +393,14 @@ function checkNewDay(){
   render();
 }
 
-// ---------- data: export / reset ----------
+// ---------- data: save warning / export / import / reset ----------
+function noteSave(ok){
+  if(saveFailed === !ok) return;
+  saveFailed = !ok;
+  const banner = $("saveWarn");
+  if(banner) banner.hidden = !saveFailed;
+}
+
 function exportData(){
   const dump = {app:"disiplin-40", version:1, exported:new Date().toISOString(),
     habits:store.get(KEY_HABITS, []), start:store.get(KEY_START, null), days:{}, tasks:{}};
@@ -370,14 +413,46 @@ function exportData(){
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 150);
 }
 
-function resetAllData(){
+function readBackup(dump){
+  if(!isPlainObject(dump) || dump.app !== "disiplin-40" || !Array.isArray(dump.habits)) return null;
+  const datedEntries = (obj, valid) => isPlainObject(obj) ? Object.entries(obj).filter(([dk, v]) => isDateKey(dk) && valid(v)) : [];
+  return {
+    exported: typeof dump.exported === "string" ? dump.exported.slice(0, 10) : "",
+    habits: dump.habits.filter(h => isPlainObject(h) && typeof h.id === "string"),
+    start: isDateKey(dump.start) ? dump.start : dateKey(new Date()),
+    days: datedEntries(dump.days, isPlainObject),
+    tasks: datedEntries(dump.tasks, Array.isArray),
+  };
+}
+
+async function importFromFile(file){
+  let backup = null;
+  try{ backup = readBackup(JSON.parse(await file.text())); }catch(e){}
+  if(!backup){ alert("This file is not a Discipline backup."); return; }
+  const from = backup.exported ? ` from ${backup.exported}` : "";
+  if(!confirm(`Replace all current data with this backup${from}?\n${backup.habits.length} habits, ${backup.days.length} days of records.`)) return;
+  clearAppData();
+  habits = backup.habits; saveHabits();
+  startDate = backup.start; store.set(KEY_START, startDate);
+  backup.days.forEach(([dk, rec]) => store.set(DAY_PREFIX+dk, rec));
+  backup.tasks.forEach(([dk, tasks]) => store.set(TASKS_PREFIX+dk, tasks));
+  rolloverTasks();
+  render();
+}
+
+function clearAppData(){
   storedDayKeys().forEach(dk => store.remove(DAY_PREFIX+dk));
   storedTaskKeys().forEach(dk => store.remove(TASKS_PREFIX+dk));
   [KEY_HABITS, KEY_START].forEach(k => store.remove(k));
   dayCache = {}; taskCache = {}; expanded = null; editing = false; sumFilter = {mode:"30d", from:"", to:""};
+  sel = new Date();
+}
+
+function resetAllData(){
+  clearAppData();
   habits = defaultHabits(); saveHabits();
   startDate = dateKey(new Date()); store.set(KEY_START, startDate);
-  sel = new Date(); render();
+  render();
 }
 
 // ---------- summary ----------
@@ -443,8 +518,8 @@ function renderSummary(){
     if(s === 1){ ok++; perHabit[h.id]++; } else if(s === 2) warn++; else if(s === 3) miss++;
     if(r.emotion && emoCount[r.emotion] != null) emoCount[r.emotion]++;
   }));
-  const logged = ok + warn + miss;
-  const rate = logged ? Math.round(ok/logged*100) : 0;
+  const possible = active.length * habits.length;
+  const rate = possible ? Math.round(ok/possible*100) : 0;
   const total = habits.length || 1;
   const tasks = taskTotals();
 
@@ -468,7 +543,7 @@ function renderSummary(){
     <div class="sum-hero">
       <div class="big disp">${rate}%</div>
       <div class="lbl">on time · ${range.label}</div>
-      <div class="sub">${active.length} days logged · ${ok} ○ out of ${logged} marked</div>
+      <div class="sub">${active.length} days logged · ${ok} of ${possible} on time</div>
     </div>
     <div class="statgrid">
       <div class="stat"><div class="n disp" style="color:var(--ok)">${ok}</div><div class="k">○ on time</div></div>
@@ -532,6 +607,7 @@ function bindControls(){
     habits.push({id:"h"+Date.now(), name:"", time:""}); saveHabits(); render();
     setTimeout(() => { const inputs = document.querySelectorAll(".edit-inp"); if(inputs.length) inputs[inputs.length-2].focus(); }, 30);
   };
+  $("saveWarnExport").onclick = exportData;
   bindMenu();
 }
 
@@ -559,6 +635,8 @@ function bindMenu(){
     editing = true; expanded = null; closeMenu(); render();
   };
   $("mExport").onclick = () => { closeMenu(); exportData(); };
+  $("mImport").onclick = () => { closeMenu(); $("importFile").click(); };
+  $("importFile").onchange = (e) => { const file = e.target.files[0]; e.target.value = ""; if(file) importFromFile(file); };
 
   const reset = $("mReset"), label = reset.innerHTML;
   let armed = false, timer = null;
@@ -576,6 +654,8 @@ function bindMenu(){
 
 // ---------- init ----------
 function init(){
+  migrateLegacyKeys();
+  noteSave(store.probe());
   const savedHabits = store.get(KEY_HABITS, null);
   if(Array.isArray(savedHabits)) habits = savedHabits.filter(isPlainObject);
   else { habits = defaultHabits(); saveHabits(); }

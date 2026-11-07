@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Discipline · 40 Days</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,6 +25,8 @@
     <button class="menurow" id="mEdit"><span class="mi">✎</span>Edit Habits</button>
     <button class="menurow danger" id="mReset"><span class="mi">↺</span>Reset Data</button>
     <button class="menurow" id="mExport"><span class="mi">↧</span>Export Data</button>
+    <button class="menurow" id="mImport"><span class="mi">↥</span>Import Data</button>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
   </div>
   <div id="menuAdd" class="submenu">
     <button class="mback" data-back>‹ Back</button>
@@ -41,6 +43,10 @@
   </div>
 </div>
 <div class="wrap fadein">
+  <div class="savewarn" id="saveWarn" role="alert" hidden>
+    <span>Changes aren’t being saved on this device.</span>
+    <button id="saveWarnExport">Export backup</button>
+  </div>
   <div class="eyebrow">40 Days · Toward Discipline</div>
 
   <div class="seg">

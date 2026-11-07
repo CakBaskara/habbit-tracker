@@ -12,7 +12,7 @@ progressive web app (PWA) — no build step, no dependencies, no backend.
   filterable by period (7 days / 30 days / this month / all / custom range)
 - **6 themes** — Dark, Light, Pink, Pastel, Forest, Ocean
 - **Offline-first** — installable to the home screen, works with no connection
-- **Local data** — everything stays in the browser; export to JSON anytime
+- **Local data** — everything stays in the browser; export to JSON and import it back anytime
 
 ## Usage
 
@@ -34,8 +34,10 @@ cached files until that name changes.
 
 ## Data
 
-Stored in the browser's `localStorage` on the device you use. It is not synced across
-devices. Use **Export data** for a JSON backup; **Reset data** clears everything.
+Stored in the browser's `localStorage` on the device you use, under keys that start with
+`disiplin40:`. It is not synced across devices. Use **Export data** for a JSON backup and
+**Import data** to restore one (it replaces the current data); **Reset data** clears everything.
+If the browser refuses to save, a red bar asks you to export a backup.
 
 ## Structure
 

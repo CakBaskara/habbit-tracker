@@ -5,7 +5,7 @@
   --anger:#E88E7C; --disgust:#9FD3A0; --surprise:#F0B36A;
   /* Dawn (dark) — default */
   --bg:#090D1A; --bg2:#111730; --surface:#161D36; --surface2:#1F2846; --line:#2A3454;
-  --ink:#ECF1F9; --muted:#8593B2; --faint:#5A688C; --frost:#A8C0DC;
+  --ink:#ECF1F9; --muted:#8593B2; --faint:#8591B0; --frost:#A8C0DC;
   --accent:#A6B2C6; --ember:var(--accent); --dawn:var(--accent); --rose:#8894AC;
   --accent-ink:#161B29; --argb:166,178,198; --dawn-dim:#565F72; --glass:rgba(255,255,255,0.05);
   --sun1:#CBD4E2; --sun2:#A6B2C6; --sun3:#7C89A2;
@@ -17,7 +17,7 @@
 }
 body[data-theme="light"]{
   --bg:#F6F4EF; --bg2:#FFFFFF; --surface:#FFFFFF; --surface2:#F1EDE4; --line:#E5E0D5;
-  --ink:#2B2720; --muted:#7C7568; --faint:#A79F90; --frost:#94795E;
+  --ink:#2B2720; --muted:#70695E; --faint:#706859; --frost:#94795E;
   --accent:#DD8A46; --rose:#E08466; --accent-ink:#FFFFFF; --argb:221,138,70; --dawn-dim:#CDBCA2; --glass:rgba(0,0,0,0.035);
   --sun1:#F2C24E; --sun2:#E8974E; --sun3:#E07A5F; --ok:#3EA377; --warn:#C68A28; --miss:#D2645F;
   --bg-grad:
@@ -26,7 +26,7 @@ body[data-theme="light"]{
 }
 body[data-theme="pink"]{
   --bg:#FFF0F6; --bg2:#FFFFFF; --surface:#FFFFFF; --surface2:#FDE7F1; --line:#F6D2E3;
-  --ink:#3A2230; --muted:#9B7286; --faint:#CB9DB6; --frost:#B0708F;
+  --ink:#3A2230; --muted:#845E70; --faint:#9B527A; --frost:#B0708F;
   --accent:#E84B8A; --rose:#F58BB0; --accent-ink:#FFFFFF; --argb:232,75,138; --dawn-dim:#E6B4CC; --glass:rgba(0,0,0,0.03);
   --sun1:#FFA8C8; --sun2:#F569A0; --sun3:#E84B8A; --ok:#3FB491; --warn:#D79A34; --miss:#E0637F;
   --bg-grad:
@@ -35,7 +35,7 @@ body[data-theme="pink"]{
 }
 body[data-theme="pastel"]{
   --bg:#F3F1FA; --bg2:#FFFFFF; --surface:#FFFFFF; --surface2:#EEEBF7; --line:#E6E1F1;
-  --ink:#3B3550; --muted:#847CA0; --faint:#B4AECB; --frost:#8E86AE;
+  --ink:#3B3550; --muted:#6D648A; --faint:#6D6298; --frost:#8E86AE;
   --accent:#8E7CE0; --rose:#F2A6C0; --accent-ink:#FFFFFF; --argb:142,124,224; --dawn-dim:#D2CAEE; --glass:rgba(0,0,0,0.028);
   --sun1:#A6E3D6; --sun2:#B7A6EA; --sun3:#F2A6C0; --ok:#5BC1A2; --warn:#E0B85A; --miss:#E58AA0;
   --bg-grad:
@@ -45,7 +45,7 @@ body[data-theme="pastel"]{
 }
 body[data-theme="hutan"]{
   --bg:#08140D; --bg2:#0E2016; --surface:#12271A; --surface2:#1B3626; --line:#264B33;
-  --ink:#E8F2EA; --muted:#8AA894; --faint:#5C7A66; --frost:#A6D0B4;
+  --ink:#E8F2EA; --muted:#8AA894; --faint:#82A18C; --frost:#A6D0B4;
   --accent:#8FD05A; --rose:#C9E08A; --accent-ink:#11250A; --argb:143,208,90; --dawn-dim:#4E6B44; --glass:rgba(255,255,255,0.045);
   --sun1:#D6E88A; --sun2:#9FD85E; --sun3:#5FB86A; --ok:#7FD6A8; --warn:#DCC152; --miss:#E88C84;
   --bg-grad:
@@ -54,7 +54,7 @@ body[data-theme="hutan"]{
 }
 body[data-theme="samudra"]{
   --bg:#05121A; --bg2:#0B2230; --surface:#0F2A3A; --surface2:#173B4E; --line:#1E475C;
-  --ink:#E6F2F7; --muted:#84A5B4; --faint:#547283; --frost:#A6D2E0;
+  --ink:#E6F2F7; --muted:#87A7B6; --faint:#8BA6B5; --frost:#A6D2E0;
   --accent:#5AC8DC; --rose:#7FE0D0; --accent-ink:#062028; --argb:90,200,220; --dawn-dim:#3E6B78; --glass:rgba(255,255,255,0.05);
   --sun1:#8AE0E8; --sun2:#5AC8DC; --sun3:#5A9FE0; --ok:#7FD6C0; --warn:#E4C765; --miss:#E88C9C;
   --bg-grad:
@@ -63,6 +63,7 @@ body[data-theme="samudra"]{
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{margin:0; padding:0;}
+html{touch-action:manipulation;}
 body{
   font-family:var(--sans); color:var(--ink); min-height:100vh; -webkit-font-smoothing:antialiased;
   background:var(--bg-grad);
@@ -122,7 +123,8 @@ body{
 
 /* week strip — blockless */
 .week{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:26px;}
-.wc{background:transparent; border:none; padding:8px 0; text-align:center; cursor:pointer;}
+.wc{display:block; width:100%; background:transparent; border:none; padding:8px 0; text-align:center; cursor:pointer; font:inherit; color:inherit;}
+.wc .wd, .wc .wdot{display:block;}
 .wc .wd{font-family:var(--mono); font-size:9.5px; color:var(--faint); letter-spacing:.04em;
   text-transform:uppercase; transition:color .18s;}
 .wc.today .wd{color:var(--ember);}
@@ -154,7 +156,7 @@ body{
 .caret{flex:0 0 auto; color:var(--frost); font-size:16px; line-height:1;
   transition:transform .22s, color .2s, background .2s, border-color .2s;
   width:32px; height:32px; border-radius:10px; display:grid; place-items:center;
-  background:var(--surface2); border:1px solid var(--line);}
+  background:var(--surface2); border:1px solid var(--line); padding:0; font-family:inherit; cursor:pointer;}
 .habit.expanded .caret{transform:rotate(180deg); color:var(--accent-ink); background:var(--ember); border-color:var(--ember);}
 .detail{max-height:0; overflow:hidden; transition:max-height .28s ease;}
 .habit.expanded .detail{max-height:480px;}
@@ -176,6 +178,8 @@ textarea:focus{outline:none; border-color:var(--dawn-dim);}
 .edit-time{width:80px; flex:0 0 auto; font-family:var(--mono); text-align:center;}
 .del{flex:0 0 auto; width:40px; height:40px; border-radius:10px; border:1px solid var(--line);
   background:transparent; color:var(--miss); font-size:17px; cursor:pointer;}
+.del.arm{width:auto; padding:0 11px; background:var(--miss); border-color:var(--miss); color:#1A1414;
+  font-family:var(--grot); font-weight:600; font-size:12.5px;}
 
 /* actions */
 .add{width:100%; background:transparent; border:1.5px dashed var(--line); color:var(--muted);
@@ -294,3 +298,12 @@ textarea:focus{outline:none; border-color:var(--dawn-dim);}
 .mback{background:transparent; border:none; color:var(--muted); font-family:var(--mono); font-size:11px;
   letter-spacing:.08em; text-transform:uppercase; padding:6px 4px 12px; cursor:pointer;}
 .msub-inner{padding:2px 2px 6px;}
+/* save warning */
+.savewarn{position:sticky; top:12px; z-index:15; display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;
+  margin:0 54px 18px 0; padding:11px 13px; border-radius:13px; background:var(--miss); color:#1A1414;
+  font-size:13px; font-weight:600; line-height:1.35;}
+.savewarn[hidden]{display:none;}
+.savewarn button{background:#1A1414; color:var(--miss); border:none; border-radius:9px; padding:7px 11px;
+  font-family:var(--grot); font-weight:600; font-size:12.5px; cursor:pointer;}
+/* iOS Safari zooms the page into any field under 16px when it gets focus. */
+@supports (-webkit-touch-callout:none){ input, textarea{font-size:16px;} }
