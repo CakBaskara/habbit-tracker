@@ -71,7 +71,9 @@
   <div id="viewDaily">
   <div class="nav">
     <button id="prev" aria-label="Previous day">‹</button>
-    <div class="navmid"><div class="navday" id="navDay">—</div><div class="navdate" id="navDate">—</div></div>
+    <button class="navmid" id="calBtn" aria-label="Open calendar" aria-expanded="false">
+      <span class="navday" id="navDay">—</span><span class="navdate" id="navDate">—</span><span class="navhijri" id="navHijri"></span>
+    </button>
     <button id="next" aria-label="Next day">›</button>
   </div>
   <button class="backtoday" id="todayBtn">Back to today</button>
@@ -100,6 +102,20 @@
   </div><!-- /viewDaily -->
 
   <div id="viewSummary" style="display:none"></div>
+</div>
+
+<div class="caloverlay" id="calOverlay" role="dialog" aria-modal="true" aria-label="Calendar" hidden>
+  <div class="calbox">
+    <div class="calhead">
+      <button id="calPrev" aria-label="Previous month">‹</button>
+      <div class="calmid"><div class="caltitle" id="calTitle"></div><div class="calsub" id="calSub"></div></div>
+      <button id="calNext" aria-label="Next month">›</button>
+    </div>
+    <div class="week calwd"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+    <div class="week calgrid" id="calGrid"></div>
+    <div class="callegend">Small number = Hijri day · bold = 13–15 Hijri · dot = done rate</div>
+    <div class="calfoot"><button id="calToday">Today</button><button id="calClose">Close</button></div>
+  </div>
 </div>
 
 <div class="barwrap">

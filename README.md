@@ -8,6 +8,8 @@ progressive web app (PWA) — no build step, no dependencies, no backend.
 - **Yes / no marking** — ✓ done · ✕ not done; write partial results (for example "8 of 12") in the notes
 - **Schedules** — a habit runs every day, on chosen weekdays, or on the 13th–15th of the Hijri
   month (Umm al-Qura calendar); off-schedule habits are dimmed and do not count that day
+- **Calendar and Hijri dates** — the week strip still moves one day at a time; tap the date heading to open a month
+  calendar and jump to any day. Both show the Hijri day (Umm al-Qura), with 13–15 Hijri in bold and a dot for the day's done rate
 - **Emotion log** — six emotions with emoji, plus "why" and "what could be better" notes per habit
 - **Extra tasks** — one-off daily reminders; unfinished ones roll over to today automatically
 - **Summary** — done rate, streaks, daily progress, habit consistency and emotion spread,
@@ -22,7 +24,7 @@ Open `index.html` in a browser, or host it (see below) and add it to your home s
 
 - Tap the circle to cycle a habit: ✓ → ✕ → blank
 - Tap the ▾ button to open emotions and notes
-- Use the ‹ › arrows or the week strip to move between days
+- Use the ‹ › arrows or the week strip to move between days, or tap the date heading to pick from a month calendar
 - In **Edit habits**, tap the weekday chips (or 13–15 Hijri) under a habit to set its schedule;
   with none selected the habit runs every day
 - Switch to **Summary** for charts

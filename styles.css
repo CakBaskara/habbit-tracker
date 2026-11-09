@@ -76,22 +76,46 @@ h1, h2{margin:0;}
 .nav{display:flex; align-items:center; justify-content:space-between; margin:6px 0 2px;}
 .nav button{background:none; border:none; color:var(--ink); width:40px; height:40px; font-size:24px; cursor:pointer; border-radius:var(--radius);}
 .nav button:active{background:var(--surface2);}
-.navmid{flex:1; min-width:0; text-align:center;}
+.nav .navmid{flex:1; min-width:0; width:auto; height:auto; padding:2px 0; font:inherit; text-align:center;}
+.navmid span{display:block;}
 .navday{font-size:22px; font-weight:700; line-height:1.2;}
+.navday::after{content:"▾"; margin-left:6px; font-size:12px; font-weight:400; color:var(--muted); vertical-align:middle;}
 .navdate{font-size:13px; color:var(--muted); margin-top:1px;}
+.navhijri{font-size:12px; color:var(--faint); margin-top:1px;}
+.navhijri:empty{display:none;}
 .backtoday{display:block; margin:0 auto 6px; background:none; border:none; padding:4px 8px; cursor:pointer;
   color:var(--ink); font-size:13px; font-weight:500; text-decoration:underline; text-underline-offset:3px;}
 
 /* week strip */
 .week{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin:6px 0 20px;}
 .wc{display:block; width:100%; background:transparent; border:none; padding:6px 0; text-align:center; cursor:pointer; font:inherit; color:inherit;}
-.wc .wd, .wc .wdot{display:block;}
+.wc .wd, .wc .wh, .wc .wdot{display:block;}
 .wc .wd{font-size:11.5px; color:var(--muted);}
+.wc .wh{font-size:10.5px; line-height:1.2; color:var(--faint);}
+.wc.bid .wh{color:var(--ink); font-weight:600;}
 .wc.today .wd{color:var(--ink); font-weight:600;}
 .wc .wn{display:inline-block; font-size:16px; font-weight:500; margin:4px 0 2px; padding-bottom:2px; color:var(--muted); border-bottom:2px solid transparent;}
 .wc.today .wn{color:var(--ink);}
 .wc.sel .wn{color:var(--ink); font-weight:700; border-bottom-color:var(--ink);}
 .wc .wdot{width:6px; height:6px; border-radius:50%; margin:4px auto 0; background:var(--line);}
+
+/* calendar (reuses the week strip cells) */
+.caloverlay{position:fixed; inset:0; z-index:30; display:grid; place-items:center; padding:16px; background:rgba(0,0,0,.45);}
+.caloverlay[hidden]{display:none;}
+.calbox{width:100%; max-width:380px; padding:12px; background:var(--surface); color:var(--ink); border:1px solid var(--line);
+  border-radius:var(--radius); box-shadow:0 10px 30px rgba(0,0,0,.25);}
+.calhead{display:flex; align-items:center; justify-content:space-between;}
+.calhead button{background:none; border:none; color:var(--ink); width:40px; height:40px; font-size:22px; cursor:pointer; border-radius:var(--radius);}
+.calhead button:active{background:var(--surface2);}
+.calmid{flex:1; min-width:0; text-align:center;}
+.caltitle{font-size:16px; font-weight:600;}
+.calsub{font-size:12px; color:var(--muted); margin-top:1px;}
+.calwd{margin:8px 0 0; font-size:11.5px; color:var(--muted); text-align:center;}
+.calgrid{margin:0;}
+.callegend{margin-top:8px; font-size:11.5px; color:var(--muted); text-align:center;}
+.calfoot{display:flex; justify-content:space-between; margin-top:6px;}
+.calfoot button{background:none; border:none; padding:8px 10px; cursor:pointer; color:var(--ink); font-size:13px; font-weight:500;
+  text-decoration:underline; text-underline-offset:3px;}
 
 /* section titles */
 .sec-title{font-size:16px; font-weight:600; margin:0 0 10px;}

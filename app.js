@@ -144,14 +144,24 @@ function updateRecord(habitId, change){
 
 // ---------- schedule ----------
 // Umm al-Qura can differ by a day from a local Hijri calendar; marking a habit makes it count that day anyway.
-const hijriFormat = (() => { try{ return new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {day:"numeric"}); }catch(e){ return null; } })();
+const hijriFormat = (() => { try{ return new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {day:"numeric", month:"long", year:"numeric"}); }catch(e){ return null; } })();
 const hijriCache = {};
-function hijriDay(dk){
+function hijriParts(dk){
   if(!(dk in hijriCache)){
-    const part = hijriFormat && hijriFormat.formatToParts(parseKey(dk)).find(p => p.type === "day");
-    hijriCache[dk] = part ? Number(part.value) : 0;
+    const p = {day:0, month:"", year:""};
+    if(hijriFormat) hijriFormat.formatToParts(parseKey(dk)).forEach(x => { if(x.type in p) p[x.type] = x.value; });
+    p.day = Number(p.day) || 0;
+    hijriCache[dk] = p;
   }
   return hijriCache[dk];
+}
+const hijriDay = dk => hijriParts(dk).day;
+function hijriLabel(dk){ const p = hijriParts(dk); return p.day ? `${p.day} ${p.month} ${p.year} AH` : ""; }
+function hijriRange(first, last){
+  const a = hijriParts(dateKey(first)), b = hijriParts(dateKey(last));
+  if(!a.day || !b.day) return "";
+  if(a.year === b.year) return a.month === b.month ? `${a.month} ${a.year}` : `${a.month} – ${b.month} ${a.year}`;
+  return `${a.month} ${a.year} – ${b.month} ${b.year}`;
 }
 const habitDays = h => Array.isArray(h.days) ? h.days : [];
 function isScheduled(h, dk){
@@ -230,6 +240,7 @@ function renderHeader(){
   $("navDay").textContent = relative || DAYNAMES[sel.getDay()];
   $("navDate").textContent = relative ? `${DAYNAMES[sel.getDay()]}, ${sel.getDate()} ${MONTHS[sel.getMonth()]}`
                                       : `${sel.getDate()} ${MONTHS[sel.getMonth()]} ${sel.getFullYear()}`;
+  $("navHijri").textContent = hijriLabel(dateKey(sel));
   $("todayBtn").style.display = sameDay(sel, new Date()) ? "none" : "block";
 }
 
@@ -241,23 +252,30 @@ function renderProgress(){
   $("cMiss").textContent = c.miss;
 }
 
+function dayDotColor(dk){
+  const c = tallyFor(dk);
+  if(c.ok + c.miss === 0) return "var(--line)";
+  const r = c.ok/c.due;
+  return r >= .8 ? "var(--ok)" : r >= .4 ? "var(--warn)" : (c.ok > 0 ? "var(--accent)" : "var(--miss)");
+}
+
+// One day button, shared by the week strip and the calendar: Gregorian number, Hijri day, progress dot.
+function dayCell(d, head){
+  const dk = dateKey(d), hijri = hijriDay(dk);
+  const cell = document.createElement("button");
+  cell.type = "button";
+  cell.className = "wc" + (sameDay(d, sel) ? " sel" : "") + (sameDay(d, new Date()) ? " today" : "") + (AYYAMUL_BID.includes(hijri) ? " bid" : "");
+  cell.setAttribute("aria-label", [`${DAYNAMES[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`, hijriLabel(dk)].filter(Boolean).join(", "));
+  cell.innerHTML = `${head}<span class="wn">${d.getDate()}</span>${hijri ? `<span class="wh">${hijri}</span>` : ""}<span class="wdot" style="background:${dayDotColor(dk)}"></span>`;
+  return cell;
+}
+
 function renderWeek(){
   const week = $("week"); week.innerHTML = "";
   const monday = addDays(sel, -((sel.getDay()+6) % 7));
-  const today = new Date();
   for(let i = 0; i < 7; i++){
-    const d = addDays(monday, i), c = tallyFor(dateKey(d));
-    let dotColor = "var(--line)";
-    if(c.ok + c.miss > 0){
-      const r = c.ok/c.due;
-      dotColor = r >= .8 ? "var(--ok)" : r >= .4 ? "var(--warn)" : (c.ok > 0 ? "var(--accent)" : "var(--miss)");
-    }
-    const cell = document.createElement("button");
-    cell.type = "button";
-    cell.className = "wc" + (sameDay(d, sel) ? " sel" : "") + (sameDay(d, today) ? " today" : "");
-    cell.setAttribute("aria-label", `${DAYNAMES[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`);
-    cell.innerHTML = `<span class="wd">${sameDay(d, today) ? "Today" : WEEK_LABELS[i]}</span>
-      <span class="wn">${d.getDate()}</span><span class="wdot" style="background:${dotColor}"></span>`;
+    const d = addDays(monday, i);
+    const cell = dayCell(d, `<span class="wd">${sameDay(d, new Date()) ? "Today" : WEEK_LABELS[i]}</span>`);
     cell.onclick = () => selectDate(d);
     week.appendChild(cell);
   }
@@ -624,6 +642,36 @@ function renderSummary(){
 // ---------- navigation ----------
 function selectDate(d){ sel = d; expanded = null; render(); }
 
+// ---------- calendar ----------
+const calTitleFormat = new Intl.DateTimeFormat("en", {month:"long", year:"numeric"});
+let calMonth = null;   // first day of the month on show
+
+function renderCalendar(){
+  const y = calMonth.getFullYear(), m = calMonth.getMonth(), last = new Date(y, m+1, 0);
+  $("calTitle").textContent = calTitleFormat.format(calMonth);
+  $("calSub").textContent = hijriRange(calMonth, last);
+  const grid = $("calGrid"); grid.innerHTML = "";
+  grid.append(...Array.from({length: (calMonth.getDay()+6) % 7}, () => document.createElement("span")));
+  for(let n = 1; n <= last.getDate(); n++){
+    const d = new Date(y, m, n), cell = dayCell(d, "");
+    cell.onclick = () => { closeCalendar(); selectDate(d); };
+    grid.appendChild(cell);
+  }
+}
+function openCalendar(){
+  calMonth = new Date(sel.getFullYear(), sel.getMonth(), 1);
+  $("calOverlay").hidden = false;
+  $("calBtn").setAttribute("aria-expanded", "true");
+  renderCalendar();
+  $("calGrid").querySelector(".sel")?.focus();
+}
+function closeCalendar(){
+  $("calOverlay").hidden = true;
+  $("calBtn").setAttribute("aria-expanded", "false");
+  $("calBtn").focus();
+}
+const shiftCalendar = n => { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+n, 1); renderCalendar(); };
+
 function setView(v){
   view = v;
   $("segDaily").classList.toggle("active", v === "daily");
@@ -658,6 +706,13 @@ function bindControls(){
   $("prev").onclick = () => selectDate(addDays(sel, -1));
   $("next").onclick = () => selectDate(addDays(sel, 1));
   $("todayBtn").onclick = () => selectDate(new Date());
+  $("calBtn").onclick = openCalendar;
+  $("calPrev").onclick = () => shiftCalendar(-1);
+  $("calNext").onclick = () => shiftCalendar(1);
+  $("calToday").onclick = () => { closeCalendar(); selectDate(new Date()); };
+  $("calClose").onclick = closeCalendar;
+  $("calOverlay").onclick = e => { if(e.target === e.currentTarget) closeCalendar(); };
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && !$("calOverlay").hidden) closeCalendar(); });
   $("segDaily").onclick = () => setView("daily");
   $("segSummary").onclick = () => setView("summary");
   $("taskAdd").onclick = addTaskFromInput;
