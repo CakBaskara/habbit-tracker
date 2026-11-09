@@ -5,9 +5,11 @@ progressive web app (PWA) — no build step, no dependencies, no backend.
 
 ## Features
 
+- **19 default habits** — the daily worship and personal routine, including scheduled fasting; existing users can add missing defaults from the menu without replacing records
 - **Yes / no marking** — ✓ done · ✕ not done; write partial results (for example "8 of 12") in the notes
+- **Flexible start date** — choose Day 1 from the menu, including a future date; changing it keeps existing records
 - **Schedules** — a habit runs every day, on chosen weekdays, or on the 13th–15th of the Hijri
-  month (Umm al-Qura calendar); off-schedule habits are dimmed and do not count that day
+  month (Umm al-Qura calendar adjusted back one day); off-schedule habits are dimmed and do not count that day
 - **Calendar and Hijri dates** — the week strip still moves one day at a time; tap the date heading to open a month
   calendar and jump to any day. Both show the Hijri day (Umm al-Qura), with 13–15 Hijri in bold and a dot for the day's done rate
 - **Emotion log** — six emotions with emoji, plus "why" and "what could be better" notes per habit
@@ -22,9 +24,12 @@ progressive web app (PWA) — no build step, no dependencies, no backend.
 
 Open `index.html` in a browser, or host it (see below) and add it to your home screen.
 
+- Existing installations keep their saved habits; use **Add default habits** in the menu to add missing defaults without changing records or the start date
+- Open **Challenge start date** in the menu, choose your Day 1 and save; before that date, the banner shows when it starts
 - Tap the circle to cycle a habit: ✓ → ✕ → blank
 - Tap the ▾ button to open emotions and notes
 - Use the ‹ › arrows or the week strip to move between days, or tap the date heading to pick from a month calendar
+- In the month calendar, tap its heading to choose a month, then tap the year heading for a 12-year period; use the arrows to browse periods
 - In **Edit habits**, tap the weekday chips (or 13–15 Hijri) under a habit to set its schedule;
   with none selected the habit runs every day
 - Switch to **Summary** for charts

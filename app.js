@@ -16,14 +16,25 @@ const EMOS = [
   ["Anger","--anger","😡"],["Disgust","--disgust","🤢"],["Surprise","--surprise","😲"]
 ];
 const DEFAULT_HABITS = [
-  {id:"h1", name:"Wake up at 05:00", time:"05:00"},
-  {id:"h2", name:"Morning prayer / reflection", time:"05:15"},
-  {id:"h3", name:"Run / workout", time:"05:45"},
-  {id:"h4", name:"Shower + breakfast", time:"06:45"},
-  {id:"h5", name:"Deep work / coding", time:"08:00"},
-  {id:"h6", name:"Create & edit content", time:"10:00"},
-  {id:"h7", name:"Reading", time:"20:00"},
-  {id:"h8", name:"Sleep on time", time:"22:30"},
+  {"id":"b01","name":"Bangun 03.00","time":"03:00"},
+  {"id":"b02","name":"Tahajud 11 rakaat","time":""},
+  {"id":"b03","name":"Witir 3 rakaat","time":""},
+  {"id":"b04","name":"Salat 5 waktu di masjid","time":""},
+  {"id":"b05","name":"Rawatib 12 rakaat","time":""},
+  {"id":"b06","name":"Sedekah subuh","time":""},
+  {"id":"b07","name":"Dzikir & istighfar","time":""},
+  {"id":"b08","name":"Dhuha 4 rakaat","time":""},
+  {"id":"b09","name":"Tilawah 1 juz","time":""},
+  {"id":"b10","name":"Salat hajat","time":""},
+  {"id":"b11","name":"Puasa Senin-Kamis","time":"","days":[1,4]},
+  {"id":"b12","name":"Puasa Ayyamul Bid","time":"","hijri":true},
+  {"id":"b13","name":"Menjaga pandangan","time":""},
+  {"id":"b14","name":"Baca 1 jam","time":""},
+  {"id":"b15","name":"Film / podcast","time":""},
+  {"id":"b16","name":"Satu komitmen kecil","time":""},
+  {"id":"b17","name":"Tanggung jawab: tindak lanjuti janji/tugas","time":""},
+  {"id":"b18","name":"Komunikasi: latih satu perilaku","time":""},
+  {"id":"b19","name":"Tidur paling lambat 22.00","time":"22:00"},
 ];
 const THEMES = [
   {id:"light",   name:"Light",   accent:"#1E1F22", bg:"#FFFFFF"},
@@ -38,8 +49,13 @@ const STATUS_MARKS = {[STATUS_DONE]:"✓", [STATUS_MISSED]:"✕"};
 const NEXT_STATUS = {0:STATUS_DONE, [STATUS_DONE]:STATUS_MISSED, [STATUS_MISSED]:0};
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];   // Mon..Sun as Date#getDay values
 const AYYAMUL_BID = [13, 14, 15];
+const HIJRI_OFFSET_DAYS = -1;
 const DAYNAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const HIJRI_MONTHS = [
+  "Muharram", "Safar", "Rabiul Awal", "Rabiul Akhir", "Jumadil Awal", "Jumadil Akhir",
+  "Rajab", "Sya'ban", "Ramadan", "Syawal", "Zulkaidah", "Zulhijah"
+];
 const WEEK_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
 // ---------- storage (device localStorage; in-memory fallback) ----------
@@ -134,6 +150,14 @@ function getTasks(dk){
 }
 function saveTasks(dk){ store.set(TASKS_PREFIX+dk, getTasks(dk)); }
 function saveHabits(){ store.set(KEY_HABITS, habits); }
+function addDefaultHabits(){
+  const ids = new Set(habits.map(h => h.id));
+  const names = new Set(habits.map(h => String(h.name || "").trim().toLowerCase()));
+  const missing = defaultHabits().filter(h => !ids.has(h.id) && !names.has(h.name.trim().toLowerCase()));
+  if(!missing.length) return;
+  habits.push(...missing);
+  saveHabits();
+}
 
 function updateRecord(habitId, change){
   const dk = dateKey(sel), day = getDay(dk);
@@ -144,19 +168,20 @@ function updateRecord(habitId, change){
 
 // ---------- schedule ----------
 // Umm al-Qura can differ by a day from a local Hijri calendar; marking a habit makes it count that day anyway.
-const hijriFormat = (() => { try{ return new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {day:"numeric", month:"long", year:"numeric"}); }catch(e){ return null; } })();
+const hijriFormat = (() => { try{ return new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {day:"numeric", month:"numeric", year:"numeric"}); }catch(e){ return null; } })();
 const hijriCache = {};
 function hijriParts(dk){
   if(!(dk in hijriCache)){
     const p = {day:0, month:"", year:""};
-    if(hijriFormat) hijriFormat.formatToParts(parseKey(dk)).forEach(x => { if(x.type in p) p[x.type] = x.value; });
+    if(hijriFormat) hijriFormat.formatToParts(addDays(parseKey(dk), HIJRI_OFFSET_DAYS)).forEach(x => { if(x.type in p) p[x.type] = x.value; });
     p.day = Number(p.day) || 0;
+    p.month = HIJRI_MONTHS[Number(p.month)-1] || "";
     hijriCache[dk] = p;
   }
   return hijriCache[dk];
 }
 const hijriDay = dk => hijriParts(dk).day;
-function hijriLabel(dk){ const p = hijriParts(dk); return p.day ? `${p.day} ${p.month} ${p.year} AH` : ""; }
+function hijriLabel(dk){ const p = hijriParts(dk); return p.day ? `${p.day} ${p.month} ${p.year} H` : ""; }
 function hijriRange(first, last){
   const a = hijriParts(dateKey(first)), b = hijriParts(dateKey(last));
   if(!a.day || !b.day) return "";
@@ -233,7 +258,8 @@ function render(){
 
 function renderHeader(){
   const dayNo = daysBetween(startDate, dateKey(sel)) + 1;
-  $("dayNo").textContent = (dayNo >= 1 && dayNo <= CHALLENGE_DAYS) ? String(dayNo).padStart(2,"0") : (dayNo < 1 ? "–" : CHALLENGE_DAYS + "+");
+  $("challengeTitle").textContent = dayNo < 1 ? `Starts ${fmtShort(parseKey(startDate))}`
+    : `Day ${dayNo <= CHALLENGE_DAYS ? String(dayNo).padStart(2,"0") : CHALLENGE_DAYS + "+"} of ${CHALLENGE_DAYS}`;
   $("streak").textContent = currentStreak();
   const offset = daysBetween(dateKey(new Date()), dateKey(sel));
   const relative = offset === 0 ? "Today" : offset === -1 ? "Yesterday" : offset === 1 ? "Tomorrow" : "";
@@ -644,13 +670,44 @@ function selectDate(d){ sel = d; expanded = null; render(); }
 
 // ---------- calendar ----------
 const calTitleFormat = new Intl.DateTimeFormat("en", {month:"long", year:"numeric"});
+const CAL_YEAR_SPAN = 12;
 let calMonth = null;   // first day of the month on show
+let calView = "days";
+let calYearStart = 0;
 
 function renderCalendar(){
   const y = calMonth.getFullYear(), m = calMonth.getMonth(), last = new Date(y, m+1, 0);
-  $("calTitle").textContent = calTitleFormat.format(calMonth);
-  $("calSub").textContent = hijriRange(calMonth, last);
+  const picking = calView !== "days", title = $("calTitle");
+  title.textContent = calView === "days" ? calTitleFormat.format(calMonth)
+    : calView === "months" ? String(y) : `${calYearStart} – ${calYearStart + CAL_YEAR_SPAN - 1}`;
+  title.disabled = calView === "years";
+  title.setAttribute("aria-label", `${title.textContent}${calView === "days" ? ", choose month" : calView === "months" ? ", choose year" : ""}`);
+  $("calSub").textContent = picking ? (calView === "months" ? "Choose a month" : "Choose a year") : hijriRange(calMonth, last);
+  $("calWeekdays").hidden = picking;
+  $("calLegend").hidden = picking;
+  const unit = calView === "days" ? "month" : calView === "months" ? "year" : "year period";
+  $("calPrev").setAttribute("aria-label", `Previous ${unit}`);
+  $("calNext").setAttribute("aria-label", `Next ${unit}`);
   const grid = $("calGrid"); grid.innerHTML = "";
+  grid.classList.toggle("calpick", picking);
+  if(picking){
+    const count = calView === "months" ? 12 : CAL_YEAR_SPAN;
+    for(let n = 0; n < count; n++){
+      const months = calView === "months", value = months ? n : calYearStart + n;
+      const selected = months ? n === m : value === y;
+      const cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "calchoice" + (selected ? " sel" : "");
+      cell.textContent = months ? MONTHS[n] : String(value);
+      cell.setAttribute("aria-pressed", String(selected));
+      cell.onclick = () => {
+        calMonth = months ? new Date(y, value, 1) : new Date(value, m, 1);
+        setCalendarView(months ? "days" : "months");
+      };
+      grid.appendChild(cell);
+    }
+    return;
+  }
   grid.append(...Array.from({length: (calMonth.getDay()+6) % 7}, () => document.createElement("span")));
   for(let n = 1; n <= last.getDate(); n++){
     const d = new Date(y, m, n), cell = dayCell(d, "");
@@ -658,19 +715,28 @@ function renderCalendar(){
     grid.appendChild(cell);
   }
 }
+function setCalendarView(view){
+  calView = view;
+  if(view === "years") calYearStart = Math.floor(calMonth.getFullYear() / CAL_YEAR_SPAN) * CAL_YEAR_SPAN;
+  renderCalendar();
+  ($("calGrid").querySelector(".sel") || $("calGrid").querySelector("button"))?.focus();
+}
 function openCalendar(){
   calMonth = new Date(sel.getFullYear(), sel.getMonth(), 1);
   $("calOverlay").hidden = false;
   $("calBtn").setAttribute("aria-expanded", "true");
-  renderCalendar();
-  $("calGrid").querySelector(".sel")?.focus();
+  setCalendarView("days");
 }
 function closeCalendar(){
   $("calOverlay").hidden = true;
   $("calBtn").setAttribute("aria-expanded", "false");
   $("calBtn").focus();
 }
-const shiftCalendar = n => { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+n, 1); renderCalendar(); };
+function shiftCalendar(n){
+  if(calView === "years") calYearStart += n * CAL_YEAR_SPAN;
+  else calMonth = new Date(calMonth.getFullYear() + (calView === "months" ? n : 0), calMonth.getMonth() + (calView === "days" ? n : 0), 1);
+  renderCalendar();
+}
 
 function setView(v){
   view = v;
@@ -707,6 +773,7 @@ function bindControls(){
   $("next").onclick = () => selectDate(addDays(sel, 1));
   $("todayBtn").onclick = () => selectDate(new Date());
   $("calBtn").onclick = openCalendar;
+  $("calTitle").onclick = () => setCalendarView(calView === "days" ? "months" : "years");
   $("calPrev").onclick = () => shiftCalendar(-1);
   $("calNext").onclick = () => shiftCalendar(1);
   $("calToday").onclick = () => { closeCalendar(); selectDate(new Date()); };
@@ -732,8 +799,8 @@ function bindControls(){
 
 function bindMenu(){
   const panel = $("menuPanel"), button = $("menuBtn");
-  const main = $("menuMain"), addSub = $("menuAdd"), themeSub = $("menuTheme");
-  const backToMain = () => { main.style.display = "block"; addSub.classList.remove("show"); themeSub.classList.remove("show"); };
+  const main = $("menuMain"), addSub = $("menuAdd"), themeSub = $("menuTheme"), startSub = $("menuStart");
+  const backToMain = () => { main.style.display = "block"; [addSub, themeSub, startSub].forEach(el => el.classList.remove("show")); };
   const showSub = el => { main.style.display = "none"; el.classList.add("show"); };
   const closeMenu = () => { panel.classList.remove("open"); backToMain(); };
 
@@ -748,11 +815,28 @@ function bindMenu(){
   document.querySelectorAll("[data-back]").forEach(b => b.onclick = (e) => { e.stopPropagation(); backToMain(); });
   $("mAddNav").onclick = (e) => { e.stopPropagation(); showSub(addSub); setTimeout(() => $("taskInput").focus(), 80); };
   $("mThemeNav").onclick = (e) => { e.stopPropagation(); showSub(themeSub); };
+  $("mStartNav").onclick = (e) => {
+    e.stopPropagation();
+    $("startInput").value = startDate;
+    showSub(startSub);
+    $("startInput").focus();
+  };
+  $("startForm").onsubmit = e => {
+    e.preventDefault();
+    const input = $("startInput");
+    if(!input.reportValidity() || !isDateKey(input.value)) return;
+    startDate = input.value;
+    store.set(KEY_START, startDate);
+    closeMenu();
+    renderHeader();
+    button.focus();
+  };
   $("mEdit").onclick = (e) => {
     e.stopPropagation();
     if(view !== "daily") setView("daily");
     editing = true; expanded = null; closeMenu(); render();
   };
+  $("mDefaults").onclick = () => { addDefaultHabits(); closeMenu(); render(); };
   $("mExport").onclick = () => { closeMenu(); exportData(); };
   $("mImport").onclick = () => { closeMenu(); $("importFile").click(); };
   $("importFile").onchange = (e) => { const file = e.target.files[0]; e.target.value = ""; if(file) importFromFile(file); };

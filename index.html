@@ -21,7 +21,9 @@
   <div id="menuMain">
     <button class="menurow" id="mAddNav"><span class="mi">＋</span>Add Additional Task</button>
     <button class="menurow" id="mThemeNav"><span class="mi">◐</span>Change Theme</button>
+    <button class="menurow" id="mStartNav"><span class="mi">▦</span>Challenge start date</button>
     <button class="menurow" id="mEdit"><span class="mi">✎</span>Edit Habits</button>
+    <button class="menurow" id="mDefaults"><span class="mi">＋</span>Add default habits</button>
     <button class="menurow danger" id="mReset"><span class="mi">↺</span>Reset Data</button>
     <button class="menurow" id="mExport"><span class="mi">↧</span>Export Data</button>
     <button class="menurow" id="mImport"><span class="mi">↥</span>Import Data</button>
@@ -35,6 +37,17 @@
         <button id="taskAdd" aria-label="Add task">＋</button>
       </div>
     </div>
+  </div>
+  <div id="menuStart" class="submenu">
+    <button class="mback" data-back>‹ Back</button>
+    <form id="startForm" class="msub-inner startform">
+      <label for="startInput">Day 1</label>
+      <div class="tadd">
+        <input id="startInput" type="date" required>
+        <button type="submit">Save</button>
+      </div>
+      <p>Choose when your 40 days begin. Your existing records stay saved.</p>
+    </form>
   </div>
   <div id="menuTheme" class="submenu">
     <button class="mback" data-back>‹ Back</button>
@@ -55,7 +68,7 @@
   <div class="banner">
     <div class="banner-row">
       <div>
-        <div class="banner-title">Day <span id="dayNo">–</span> of 40</div>
+        <div class="banner-title" id="challengeTitle">Day – of 40</div>
         <div class="banner-sub"><span id="cOk">0</span> of <span id="cDue">0</span> done · <span id="cMiss">0</span> not done</div>
       </div>
       <div class="banner-streak"><b id="streak">0</b><span>day streak</span></div>
@@ -108,12 +121,12 @@
   <div class="calbox">
     <div class="calhead">
       <button id="calPrev" aria-label="Previous month">‹</button>
-      <div class="calmid"><div class="caltitle" id="calTitle"></div><div class="calsub" id="calSub"></div></div>
+      <div class="calmid"><button class="caltitle" id="calTitle" type="button"></button><div class="calsub" id="calSub"></div></div>
       <button id="calNext" aria-label="Next month">›</button>
     </div>
-    <div class="week calwd"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+    <div class="week calwd" id="calWeekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
     <div class="week calgrid" id="calGrid"></div>
-    <div class="callegend">Small number = Hijri day · bold = 13–15 Hijri · dot = done rate</div>
+    <div class="callegend" id="calLegend">Small number = Hijri day · bold = 13–15 Hijri · dot = done rate</div>
     <div class="calfoot"><button id="calToday">Today</button><button id="calClose">Close</button></div>
   </div>
 </div>
